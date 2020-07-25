@@ -60,18 +60,12 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "func host start",
-            "type": "shell",
+            "label": "func: host start",
+            "type": "func",
             "options": {
                 "cwd": "${workspaceFolder}/src/MB.Telegram"
             },
-            "command": "func",
-            "args": [
-                "host",
-                "start",
-                "-p",
-                "9979"
-            ],
+            "command": "host start",
             "isBackground": true,
             "problemMatcher": "$func-watch"
         }
