@@ -30,7 +30,7 @@ namespace MB.Telegram
 
         [FunctionName("Webhook")]
         public async Task<IActionResult> WebhookCallback(
-            [HttpTrigger(AuthorizationLevel.Admin, "post", Route = "webhook")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "webhook")] HttpRequest req,
             ILogger log)
         {
             var request = await new StreamReader(req.Body).ReadToEndAsync();

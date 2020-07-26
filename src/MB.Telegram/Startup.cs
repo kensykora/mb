@@ -17,13 +17,6 @@ namespace MB.Telegram
                 .AddEnvironmentVariables();
             var config = cb.Build();
 
-            var client = new TelegramBotClient(config.GetValue<string>("telegramApiKey"));
-
-            var hostname = config.GetValue<string>("hostnameOverride") ?? config.GetValue<string>("WEBSITE_HOSTNAME");
-
-            var t = client.SetWebhookAsync($"https://{hostname}/api/{WebhookCallbackPath}");
-            t.Wait();
-
             builder.Services.AddSingleton<ITelegramBotClient>(x => new TelegramBotClient(config.GetValue<string>("telegramApiKey")));
             builder.Services.AddSingleton<IConfiguration>(x => config);
         }
