@@ -45,4 +45,8 @@ resource "azurerm_function_app" "mbot_func" {
   app_service_plan_id        = azurerm_app_service_plan.mbot_appsvc_plan.id
   storage_account_name       = azurerm_storage_account.mbot_storage.name
   storage_account_access_key = azurerm_storage_account.mbot_storage.primary_access_key
+
+  identity {
+    type = "SystemAssigned"
+  }
 }
