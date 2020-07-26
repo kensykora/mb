@@ -53,6 +53,8 @@ resource "azurerm_function_app" "mbot_func" {
   }
 
   app_settings = {
-    "telegramApiKey" = var.telegramApiKey
+    "telegramApiKey"     = var.telegramApiKey,
+    "storageAccountName" = azurerm_storage_account.mbot_storage.name
+    "storageAccountKey"  = azurerm_storage_account.mbot_storage.primary_access_key
   }
 }

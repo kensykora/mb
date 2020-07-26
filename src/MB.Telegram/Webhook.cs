@@ -10,16 +10,22 @@ using Newtonsoft.Json;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using MB.Telegram.Services;
+using AutoMapper;
 
 namespace MB.Telegram
 {
     public class Webhook
     {
         private readonly ITelegramBotClient telegramClient;
+        private readonly IUserService userService;
+        private readonly IMapper mapper;
 
-        public Webhook(ITelegramBotClient telegramClient)
+        public Webhook(ITelegramBotClient telegramClient, Services.IUserService userService, IMapper mapper)
         {
             this.telegramClient = telegramClient;
+            this.userService = userService;
+            this.mapper = mapper;
         }
         static Webhook()
         {
@@ -46,6 +52,7 @@ namespace MB.Telegram
                 return new BadRequestResult();
             }
 
+            await userService.CreateOrSetLastSeenUser(mapper.Map<MB.Telegram.Models.User>(update));
             await telegramClient.SendTextMessageAsync(update.Message.Chat.Id, update.Message.Text);
 
             return new OkResult();
