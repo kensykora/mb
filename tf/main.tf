@@ -51,4 +51,8 @@ resource "azurerm_function_app" "mbot_func" {
   identity {
     type = "SystemAssigned"
   }
+
+  app_settings = {
+    "telegramApiKey" = var.telegramApiKey
+  }
 }
