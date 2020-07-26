@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace MB.Telegram
 {
@@ -32,11 +33,18 @@ namespace MB.Telegram
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "EXxFeRY05OUBueJyHhXu")] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-
-            log.LogInformation(requestBody);
+            var request = await new StreamReader(req.Body).ReadToEndAsync();
+            log.LogDebug(request);
+            
+            try
+            {
+                var update = JsonConvert.DeserializeObject<Update>(request);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "error deserializing message");
+                return new OkResult();
+            }
 
             return new OkResult();
         }
