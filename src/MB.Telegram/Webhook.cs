@@ -35,16 +35,18 @@ namespace MB.Telegram
         {
             var request = await new StreamReader(req.Body).ReadToEndAsync();
             log.LogDebug(request);
-            
+            Update update = null;
             try
             {
-                var update = JsonConvert.DeserializeObject<Update>(request);
+                update = JsonConvert.DeserializeObject<Update>(request);
             }
             catch (Exception ex)
             {
                 log.LogError(ex, "error deserializing message");
                 return new OkResult();
             }
+
+            await telegramClient.SendTextMessageAsync(update.Message.Chat.Id, update.Message.Text);
 
             return new OkResult();
         }
