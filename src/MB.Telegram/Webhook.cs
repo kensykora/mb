@@ -43,7 +43,7 @@ namespace MB.Telegram
             catch (Exception ex)
             {
                 log.LogError(ex, "error deserializing message");
-                return new OkResult();
+                return new BadRequestResult();
             }
 
             await telegramClient.SendTextMessageAsync(update.Message.Chat.Id, update.Message.Text);
