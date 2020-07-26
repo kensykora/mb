@@ -46,6 +46,8 @@ resource "azurerm_function_app" "mbot_func" {
   storage_account_name       = azurerm_storage_account.mbot_storage.name
   storage_account_access_key = azurerm_storage_account.mbot_storage.primary_access_key
 
+  version = "~3"
+
   identity {
     type = "SystemAssigned"
   }
