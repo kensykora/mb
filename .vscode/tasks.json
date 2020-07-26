@@ -68,6 +68,36 @@
             "command": "host start",
             "isBackground": true,
             "problemMatcher": "$func-watch"
+        },
+        {
+            "label": "tf plan",
+            "command": "terraform",
+            "args": [
+                "plan",
+                "-var-file=prod.tfvars"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/tf"
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "tf apply",
+            "command": "terraform",
+            "args": [
+                "apply",
+                "-var-file=prod.tfvars"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/tf"
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
         }
     ]
 }
