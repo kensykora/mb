@@ -1,3 +1,4 @@
+on: [push]
 build:
   runs-on: ubuntu-latest
   env:
