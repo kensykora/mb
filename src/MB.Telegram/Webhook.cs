@@ -21,13 +21,15 @@ namespace MB.Telegram
     {
         private readonly ITelegramBotClient telegramClient;
         private readonly IUserService userService;
+        private readonly ISpotifyService spotifyService;
         private readonly IMapper mapper;
         private readonly ICommandService commandService;
 
-        public Webhook(ITelegramBotClient telegramClient, Services.IUserService userService, IMapper mapper, ICommandService commandService)
+        public Webhook(ITelegramBotClient telegramClient, Services.IUserService userService, ISpotifyService spotifyService, IMapper mapper, ICommandService commandService)
         {
             this.telegramClient = telegramClient;
             this.userService = userService;
+            this.spotifyService = spotifyService;
             this.mapper = mapper;
             this.commandService = commandService;
         }
@@ -36,6 +38,61 @@ namespace MB.Telegram
             var builder = new ConfigurationBuilder()
                 .AddEnvironmentVariables();
             var config = builder.Build();
+        }
+
+        [FunctionName("Spotify")]
+        public async Task<IActionResult> SpotifyCallback(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "spotify")] HttpRequest req,
+            ILogger log)
+        {
+            // // TODO: Read secure identifier from table
+            // code=AQDzFkjIyKjAmwaH7Xmrb61_2RoEjnq2TfPZE9U4SdnsTO4cwpIADStoYniAziBf1vSjY7of6eSSlvQUl-KrgFCw_sTz184M_YUUV0eaH3uhTqE4VTmF1MPr-UnD1hlkYfxGfRiP2TYdeG8CA24XOz4ic3F9PUpOrAYSz1YlseMsIaESRHBz5occhFP0
+            // error=
+            // state=
+
+            if (!string.IsNullOrWhiteSpace(req.Query["error"]))
+            {
+                log.LogInformation("User spotify error: {error}", req.Query["error"]);
+                return new BadRequestObjectResult(req.Query["error"]); // TODO: Redirect to telegram - handle denied auth
+            }
+            else if (string.IsNullOrWhiteSpace(req.Query["code"]))
+            {
+                log.LogCritical("wtf, code missing and error not found.", req.Query);
+
+                // TODO: Handle weird state that shouldn't happen
+                return new BadRequestObjectResult("Something went wrong. I'll look into it.");
+            }
+
+            var state = req.Query["state"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(state))
+            {
+                // TODO: Handle bad state error
+                return new BadRequestObjectResult("Bad State");
+            }
+
+            var splits = state.Split('|');
+            if (splits.Length != 2)
+            {
+                // TODO: Handle unknown state
+                return new BadRequestObjectResult("Bad State - incorrect splits");
+            }
+
+            // TODO: Validate security token in state
+            var userId = splits[0];
+
+            var user = await userService.GetUser(userId);
+
+            if (user == null)
+            {
+                // TODO: Handle not found
+                return new BadRequestObjectResult("Couldn't find the originating request");
+            }
+
+            await spotifyService.RedeemAuthorizationCode(user, req.Query["code"].FirstOrDefault());
+
+            // TODO: Redirect to telegram
+
+            return new OkObjectResult("OK");
         }
 
         [FunctionName("Webhook")]
@@ -76,8 +133,20 @@ namespace MB.Telegram
 
             using (log.BeginScope("User {user} sent {message}", user.UserName, update?.Message?.Text))
             {
+                var search = await userService.GetUser(user.Id);
 
-                await userService.CreateOrSetLastSeenUser(user);
+                if (search == null)
+                {
+                    user.CreatedOn = DateTimeOffset.UtcNow;
+                    user.LastSeen = DateTimeOffset.UtcNow;
+                    await userService.CreateUser(user);
+                    
+                }
+                else
+                {
+                    await userService.SetLastSeenUser(search);
+                    user = search;
+                }
 
                 var command = commandService.GetCommand(update?.Message?.Text);
                 if (command == null)

@@ -81,6 +81,7 @@ resource "azurerm_function_app" "mbot_func" {
     "storageAccountKey"              = azurerm_storage_account.mbot_storage.primary_access_key
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.mbot_ai.instrumentation_key
     "keyVaultName"                   = azurerm_key_vault.mbot_kv.name
+    "baseUrl"                        = "https://mbot-func-${var.env}.azurewebsites.net/api"
   }
 }
 
@@ -91,6 +92,7 @@ resource "azurerm_key_vault_access_policy" "mbot_kv_policy_kms" {
   object_id = azurerm_function_app.mbot_func.identity[0].principal_id
 
   secret_permissions = [
-    "get"
+    "get",
+    "set"
   ]
 }

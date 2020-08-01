@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Microsoft.WindowsAzure.Storage.Table;
 
@@ -6,10 +7,13 @@ namespace MB.Telegram.Models
     public class User : TableEntity
     {
         public ChatServices Service { get; set; }
+        public DateTimeOffset LastSeen { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
         public string UserName { get; set; }
         public string FullName { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public string SpotifyScopes { get; set; }
         public string Id
         {
             get => RowKey;
@@ -21,7 +25,8 @@ namespace MB.Telegram.Models
         }
         public string SpotifyId { get; set; }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return $"{UserName ?? FullName} ({Id})";
         }
 

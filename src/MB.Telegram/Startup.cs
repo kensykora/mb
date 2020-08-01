@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using AutoMapper;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Table;
+using SpotifyAPI.Web;
 using Telegram.Bot;
 
 [assembly: FunctionsStartup(typeof(MB.Telegram.Startup))]
@@ -34,6 +36,7 @@ namespace MB.Telegram
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<ICommandService, CommandService>();
+            builder.Services.AddSingleton<ISpotifyService, SpotifyService>();
             builder.Services.AddSingleton<CloudTableClient>(x => GetCloudTableClient(
                 config.GetValue<string>("storageAccountName"),
                 config.GetValue<string>("storageAccountKey"),
@@ -42,7 +45,7 @@ namespace MB.Telegram
             builder.Services.AddSingleton<SecretClient>(x => 
                 new SecretClient(
                     new Uri($"https://{config.GetValue<string>("keyVaultName")}.vault.azure.net"), 
-                    new DefaultAzureCredential()));
+                    new DefaultAzureCredential(includeInteractiveCredentials: Debugger.IsAttached)));
 
             var commands = FindDerivedTypes(Assembly.GetExecutingAssembly(), typeof(BaseCommand))
                     .Select(x => (IChatCommand)Activator.CreateInstance(x))
