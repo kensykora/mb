@@ -1,16 +1,17 @@
 using System.Threading.Tasks;
+using MB.Telegram.Models;
+using Microsoft.Extensions.Logging;
 
-public class ConnectCommand
+namespace MB.Telegram.Commands
 {
-    private readonly string userId;
-
-    public ConnectCommand(string userId)
+    public class ConnectCommand : BaseCommand
     {
-        this.userId = userId;
-    }
+        public override string CommandString => "/connect";
 
-    public async Task Process()
-    {
-        
+        public override Task Process(User user, string message, ILogger logger)
+        {
+            
+            return Task.CompletedTask;
+        }
     }
 }

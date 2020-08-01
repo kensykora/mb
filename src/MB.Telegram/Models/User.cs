@@ -10,7 +10,7 @@ namespace MB.Telegram.Models
         public string FullName { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string ServiceId
+        public string Id
         {
             get => RowKey;
             set
@@ -20,5 +20,9 @@ namespace MB.Telegram.Models
             }
         }
         public string SpotifyId { get; set; }
+
+        public override string ToString() {
+            return $"{UserName ?? FullName} ({Id})";
+        }
     }
 }

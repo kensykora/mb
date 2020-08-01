@@ -27,11 +27,14 @@ namespace MB.Telegram
             builder.Services.AddSingleton<IConfiguration>(x => config);
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddSingleton<IUserService, UserService>();
+            builder.Services.AddSingleton<ICommandService, CommandService>();
             builder.Services.AddSingleton<CloudTableClient>(x => GetCloudTableClient(
                 config.GetValue<string>("storageAccountName"),
                 config.GetValue<string>("storageAccountKey"),
                 config.GetValue<bool?>("useLocalStorage")
             ));
+
+            
         }
 
         private static CloudTableClient GetCloudTableClient(string storageAccountName, string key, bool? useLocal = false)

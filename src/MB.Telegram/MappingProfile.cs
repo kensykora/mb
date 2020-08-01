@@ -10,7 +10,7 @@ namespace MB.Telegram
         {
             CreateMap<Update, MB.Telegram.Models.User>()
                 .ForMember(dest => dest.Service, opt => opt.MapFrom(src => ChatServices.Telegram))
-                .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.Message.From.Id.ToString()))
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => $"{Prefix.Telegram}-{src.Message.From.Id.ToString()}"))
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => (src.Message.From.FirstName + " " + src.Message.From.LastName).Trim()))
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.Message.From.FirstName))
                 .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.Message.From.LastName))
