@@ -16,7 +16,7 @@ env:
   DOTNET_VERSION: '3.1'              # set this to the dotnet version to use
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: 'Checkout GitHub Action'
@@ -33,6 +33,28 @@ jobs:
         pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
         dotnet build --configuration Release --output ./output
         popd
+
+    - name: Upload Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+
+  deploy:
+    needs: build
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'master' }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Package
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+
+    - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: 'Run Azure Functions Action'
       uses: Azure/functions-action@v1
