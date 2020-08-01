@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using AutoMapper;
+using MB.Telegram.Commands;
 using MB.Telegram.Services;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -34,7 +38,19 @@ namespace MB.Telegram
                 config.GetValue<bool?>("useLocalStorage")
             ));
 
-            
+            var commands = FindDerivedTypes(Assembly.GetExecutingAssembly(), typeof(BaseCommand))
+                    .Select(x => (IChatCommand)Activator.CreateInstance(x))
+                    .ToList();
+
+            builder.Services.AddSingleton<List<IChatCommand>>(commands);
+            foreach (var cmd in commands)
+            {
+                builder.Services.AddScoped(cmd.GetType());
+            }
+        }
+        public IEnumerable<Type> FindDerivedTypes(Assembly assembly, Type baseType)
+        {
+            return assembly.GetTypes().Where(t => baseType.IsAssignableFrom(t) && !t.IsAbstract && t != baseType);
         }
 
         private static CloudTableClient GetCloudTableClient(string storageAccountName, string key, bool? useLocal = false)

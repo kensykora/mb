@@ -14,32 +14,16 @@ namespace MB.Telegram.Services
         private readonly IUserService userService;
         private readonly ILogger logger;
         private readonly ITelegramBotClient client;
+        private readonly IServiceProvider serviceProvider;
         public List<IChatCommand> commands;
 
-        public CommandService(IUserService userService, ILogger<CommandService> logger, ITelegramBotClient client, List<IChatCommand> commands = null)
+        public CommandService(IUserService userService, ILogger<CommandService> logger, ITelegramBotClient client, IServiceProvider serviceProvider, List<IChatCommand> commands = null)
         {
             this.userService = userService ?? throw new System.ArgumentNullException(nameof(userService));
             this.logger = logger;
             this.client = client;
+            this.serviceProvider = serviceProvider;
             this.commands = commands;
-
-            if (this.commands == null)
-            {
-                this.commands = new List<IChatCommand>();
-
-                var types = FindDerivedTypes(Assembly.GetExecutingAssembly(), typeof(BaseCommand));
-
-                foreach (var type in types)
-                {
-                    logger.LogInformation("Initializing with Command {command}", type.Name);
-                    this.commands.Add((IChatCommand)Activator.CreateInstance(type));
-                }
-            }
-        }
-
-        public IEnumerable<Type> FindDerivedTypes(Assembly assembly, Type baseType)
-        {
-            return assembly.GetTypes().Where(t => baseType.IsAssignableFrom(t) && !t.IsAbstract && t != baseType);
         }
 
         public IChatCommand GetCommand(string message)
@@ -48,7 +32,7 @@ namespace MB.Telegram.Services
 
             if (result != null)
             {
-                result = (IChatCommand)Activator.CreateInstance(result.GetType(), new[] { client });
+                result = (IChatCommand)serviceProvider.GetService(result.GetType());
             }
 
             logger.LogDebug("Command {result} for message {message}", result?.GetType(), message);

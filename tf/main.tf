@@ -13,6 +13,10 @@ terraform {
 provider "azurerm" {
   features {}
 }
+
+data "azurerm_client_config" "current" {
+}
+
 resource "azurerm_resource_group" "mbot_rg" {
   name     = "mbot-rg-${var.env}"
   location = "centralus"
@@ -46,6 +50,15 @@ resource "azurerm_application_insights" "mbot_ai" {
   retention_in_days   = 30
 }
 
+resource "azurerm_key_vault" "mbot_kv" {
+  name                = "mbot-kv-${var.env}"
+  location            = azurerm_resource_group.mbot_rg.location
+  resource_group_name = azurerm_resource_group.mbot_rg.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+
+  sku_name = "standard"
+}
+
 resource "azurerm_function_app" "mbot_func" {
   name                       = "mbot-func-${var.env}"
   location                   = azurerm_resource_group.mbot_rg.location
@@ -61,9 +74,22 @@ resource "azurerm_function_app" "mbot_func" {
   }
 
   app_settings = {
-    "telegramApiKey"     = var.telegramApiKey,
-    "storageAccountName" = azurerm_storage_account.mbot_storage.name
-    "storageAccountKey"  = azurerm_storage_account.mbot_storage.primary_access_key
+    "telegramApiKey"                 = var.telegramApiKey
+    "spotifyClientId"                = var.spotifyClientId
+    "spotifyClientSecret"            = var.spotifyClientSecret
+    "storageAccountName"             = azurerm_storage_account.mbot_storage.name
+    "storageAccountKey"              = azurerm_storage_account.mbot_storage.primary_access_key
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.mbot_ai.instrumentation_key
   }
+}
+
+resource "azurerm_key_vault_access_policy" "mbot_kv_policy_kms" {
+  key_vault_id = azurerm_key_vault.mbot_kv.id
+
+  tenant_id = azurerm_function_app.mbot_func.identity[0].tenant_id
+  object_id = azurerm_function_app.mbot_func.identity[0].principal_id
+
+  secret_permissions = [
+    "get"
+  ]
 }
