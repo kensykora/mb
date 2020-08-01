@@ -40,26 +40,26 @@ jobs:
         name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
         path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
-  deploy:
-    needs: build
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download Package
-      uses: actions/download-artifact@v2
-      with:
-        name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-        path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+  # deploy:
+  #   needs: build
+  #   if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Download Package
+  #     uses: actions/download-artifact@v2
+  #     with:
+  #       name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+  #       path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
-    - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+  #   - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
+  #     uses: actions/setup-dotnet@v1
+  #     with:
+  #       dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: 'Run Azure Functions Action'
-      uses: Azure/functions-action@v1
-      id: fa
-      with:
-        app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-        package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
-        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+  #   - name: 'Run Azure Functions Action'
+  #     uses: Azure/functions-action@v1
+  #     id: fa
+  #     with:
+  #       app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+  #       package: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+  #       publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
