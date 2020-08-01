@@ -16,13 +16,18 @@ namespace MB.Telegram.Models
             set
             {
                 RowKey = value;
-                PartitionKey = value.Length > 5 ? value.Substring(value.Length - 5) : value;
+                PartitionKey = GetPartitionKey(value);
             }
         }
         public string SpotifyId { get; set; }
 
         public override string ToString() {
             return $"{UserName ?? FullName} ({Id})";
+        }
+
+        public static string GetPartitionKey(string id)
+        {
+            return id.Length > 5 ? id.Substring(id.Length - 5) : id;
         }
     }
 }

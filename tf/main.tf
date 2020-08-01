@@ -80,6 +80,7 @@ resource "azurerm_function_app" "mbot_func" {
     "storageAccountName"             = azurerm_storage_account.mbot_storage.name
     "storageAccountKey"              = azurerm_storage_account.mbot_storage.primary_access_key
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.mbot_ai.instrumentation_key
+    "keyVaultName"                   = azurerm_key_vault.mbot_kv.name
   }
 }
 

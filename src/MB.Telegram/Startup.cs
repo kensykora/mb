@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using AutoMapper;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using MB.Telegram.Commands;
 using MB.Telegram.Services;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
@@ -37,6 +39,10 @@ namespace MB.Telegram
                 config.GetValue<string>("storageAccountKey"),
                 config.GetValue<bool?>("useLocalStorage")
             ));
+            builder.Services.AddSingleton<SecretClient>(x => 
+                new SecretClient(
+                    new Uri($"https://{config.GetValue<string>("keyVaultName")}.vault.azure.net"), 
+                    new DefaultAzureCredential()));
 
             var commands = FindDerivedTypes(Assembly.GetExecutingAssembly(), typeof(BaseCommand))
                     .Select(x => (IChatCommand)Activator.CreateInstance(x))

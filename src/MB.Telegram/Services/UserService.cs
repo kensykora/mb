@@ -8,6 +8,7 @@ namespace MB.Telegram.Services
     public interface IUserService
     {
         Task CreateOrSetLastSeenUser(User user);
+        Task<User> GetUser(string id);
     }
 
     public class UserService : IUserService
@@ -26,6 +27,13 @@ namespace MB.Telegram.Services
         public async Task CreateOrSetLastSeenUser(User user)
         {
             await table.ExecuteAsync(TableOperation.InsertOrMerge(user));
+        }
+
+        public async Task<User> GetUser(string id)
+        {
+            var result = await table.ExecuteAsync(TableOperation.Retrieve<User>(User.GetPartitionKey(id), id));
+
+            return result.Result as User;
         }
     }
 }   
