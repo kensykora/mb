@@ -35,10 +35,10 @@ jobs:
         popd
 
     - name: Upload Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-          path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+        path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
   deploy:
     needs: build
@@ -46,10 +46,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download Package
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-          path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
+      uses: actions/download-artifact@v2
+      with:
+        name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+        path: '${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/output'
 
     - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
       uses: actions/setup-dotnet@v1
