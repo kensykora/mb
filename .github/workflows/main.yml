@@ -8,6 +8,8 @@ jobs:
       - uses: actions/checkout@main
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '3.1.100' # SDK Version to use.
+          dotnet-version: '3.1'
+      - name: restore
+        run: dotnet restore
       - name: build
         run: dotnet build
