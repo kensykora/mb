@@ -1,6 +1,9 @@
 using System.Threading.Tasks;
 using MB.Telegram.Models;
 using Microsoft.Extensions.Logging;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using User = MB.Telegram.Models.User;
 
 namespace MB.Telegram.Commands
 {
@@ -8,10 +11,12 @@ namespace MB.Telegram.Commands
     {
         public override string CommandString => "/connect";
 
-        public override Task Process(User user, string message, ILogger logger)
+        public ConnectCommand() { }
+        public ConnectCommand(ITelegramBotClient client) : base(client) { }
+
+        public override async Task Process(User user, Update update, ILogger logger)
         {
-            
-            return Task.CompletedTask;
+            return;
         }
     }
 }

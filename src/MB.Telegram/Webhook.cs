@@ -94,7 +94,7 @@ namespace MB.Telegram
                     update?.Message?.Text
                 );
 
-                await command.Process(user, update?.Message?.Text, log);
+                await command.Process(user, update, log);
             }
 
             return new OkResult();

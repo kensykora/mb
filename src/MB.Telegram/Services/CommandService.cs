@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using MB.Telegram.Commands;
 using Microsoft.Extensions.Logging;
+using Telegram.Bot;
 
 namespace MB.Telegram.Services
 {
@@ -13,13 +14,14 @@ namespace MB.Telegram.Services
     {
         private readonly IUserService userService;
         private readonly ILogger logger;
-
+        private readonly ITelegramBotClient client;
         public List<IChatCommand> commands;
 
-        public CommandService(IUserService userService, ILogger<CommandService> logger, List<IChatCommand> commands = null)
+        public CommandService(IUserService userService, ILogger<CommandService> logger, ITelegramBotClient client, List<IChatCommand> commands = null)
         {
             this.userService = userService ?? throw new System.ArgumentNullException(nameof(userService));
             this.logger = logger;
+            this.client = client;
             this.commands = commands;
 
             if (this.commands == null)
@@ -47,7 +49,7 @@ namespace MB.Telegram.Services
 
             if (result != null)
             {
-                result = (IChatCommand)Activator.CreateInstance(result.GetType());
+                result = (IChatCommand)Activator.CreateInstance(result.GetType(), new[] { client });
             }
 
             logger.LogDebug("Command {result} for message {message}", result?.GetType(), message);

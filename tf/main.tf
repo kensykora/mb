@@ -38,6 +38,14 @@ resource "azurerm_app_service_plan" "mbot_appsvc_plan" {
   }
 }
 
+resource "azurerm_application_insights" "mbot_ai" {
+  name                = "mbot-func-${var.env}-ai"
+  location            = azurerm_resource_group.mbot_rg.location
+  resource_group_name = azurerm_resource_group.mbot_rg.name
+  application_type    = "web"
+  retention_in_days   = 30
+}
+
 resource "azurerm_function_app" "mbot_func" {
   name                       = "mbot-func-${var.env}"
   location                   = azurerm_resource_group.mbot_rg.location
@@ -56,5 +64,6 @@ resource "azurerm_function_app" "mbot_func" {
     "telegramApiKey"     = var.telegramApiKey,
     "storageAccountName" = azurerm_storage_account.mbot_storage.name
     "storageAccountKey"  = azurerm_storage_account.mbot_storage.primary_access_key
+    "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.mbot_ai.instrumentation_key
   }
 }
