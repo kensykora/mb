@@ -17,7 +17,7 @@ using System.Linq;
 using System.Web.Http;
 using MB.Telegram.Models;
 
-namespace MB.Telegram
+namespace MB.Telegram.Functions
 {
     public class Webhook
     {
@@ -179,6 +179,8 @@ namespace MB.Telegram
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "webhook")] HttpRequest req,
             ILogger log)
         {
+            // TODO: ChatMemberLeft
+            // TODO: ChatMemberLeft (Deleted Channel)
             var request = await new StreamReader(req.Body).ReadToEndAsync();
             log.LogDebug(request);
             Update update = null;
