@@ -24,9 +24,9 @@ namespace MB.Telegram.Commands
             return true;
         }
 
-        protected override async Task ProcessInternal(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            await TelegramClient.SendTextMessageAsync(update.Message.Chat.Id, $"I'm not sure how to deal with this: '{update.Message.Text}'");
+            await TelegramClient.SendTextMessageAsync(message.Chat.Id, $"I'm not sure how to deal with this: '{message.Text}'");
         }
     }
 }

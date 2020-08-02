@@ -13,14 +13,14 @@ namespace MB.Telegram
             return $"<a href=\"tg://user?id={user.ServiceId}\">{user.DisplayName}</a>";
         }
 
-        public static Update DeserializeState(string update)
+        public static Message DeserializeState(string message)
         {
-            return JsonConvert.DeserializeObject<Update>(Encoding.UTF8.GetString(Convert.FromBase64String(update)));
+            return JsonConvert.DeserializeObject<Message>(Encoding.UTF8.GetString(Convert.FromBase64String(message)));
         }
 
-        public static string Base64Encode(this Update update)
+        public static string Base64Encode(this Message message)
         {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(update)));
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(message)));
         }
     }
 }

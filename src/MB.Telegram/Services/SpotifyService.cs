@@ -17,7 +17,7 @@ namespace MB.Telegram.Services
         Uri RedirectUri { get; }
 
         Uri GetAuthorizationUri(MBUser user, AuthorizationState state, string[] additionalScopes = null);
-        Task RedeemAuthorizationCode(MBUser user, string authorizationCode);
+        Task<PrivateUser> RedeemAuthorizationCode(MBUser user, string authorizationCode);
         string SerializeState(AuthorizationState state);
         AuthorizationState DeserializeState(string state);
     }
@@ -39,7 +39,7 @@ namespace MB.Telegram.Services
             this.log = log;
         }
 
-        public Uri RedirectUri => new Uri(config.GetValue<string>("baseUrl") + "/spotify");
+        public Uri RedirectUri => new Uri(config.GetValue<string>("baseUrl") + "/auth/spotify");
 
         public Uri GetAuthorizationUri(MBUser user, AuthorizationState state, string[] additionalScopes = null)
         {
@@ -66,7 +66,7 @@ namespace MB.Telegram.Services
             }.ToUri();
         }
 
-        public async Task RedeemAuthorizationCode(MBUser user, string authorizationCode)
+        public async Task<PrivateUser> RedeemAuthorizationCode(MBUser user, string authorizationCode)
         {
             var response = await new OAuthClient().RequestToken(
                 new AuthorizationCodeTokenRequest(
@@ -88,6 +88,8 @@ namespace MB.Telegram.Services
             secret.Properties.NotBefore = response.CreatedAt.ToUniversalTime();
             secret.Properties.ExpiresOn = response.CreatedAt.AddSeconds(response.ExpiresIn).ToUniversalTime();
             await secretClient.SetSecretAsync(secret);
+
+            return profile;
         }
 
         public AuthorizationState DeserializeState(string state)
@@ -104,7 +106,7 @@ namespace MB.Telegram.Services
     public class AuthorizationState
     {
         public string UserId { get; set; }
-        public Update Update { get; set; }
+        public Message Message { get; set; }
         // TODO: Security Token
     }
 }

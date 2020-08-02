@@ -27,9 +27,9 @@ namespace MB.Telegram.Commands
 
         public override bool RequiresSpotify => true;
 
-        protected override async Task ProcessInternal(Models.MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessInternal(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            await TelegramClient.SendTextMessageAsync(update.Message.Chat.Id, "not done");
+            await TelegramClient.SendTextMessageAsync(message.Chat.Id, "not done");
         }
     }
 }

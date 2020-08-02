@@ -44,19 +44,19 @@ namespace MB.Telegram.Commands
         {
             return message.StartsWith(Command, StringComparison.CurrentCultureIgnoreCase);
         }
-        public async Task Process(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
+        public async Task Process(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
             if (RequiresBotConnection && UserIsNotConnected(user))
             {
                 logger.LogInformation("User {user} wasn't connected, starting connection process", user);
-                await RequestTelegramAuthForUser(user, update, logger);
+                await RequestTelegramAuthForUser(user, message, logger);
                 return;
             }
 
             if (RequiresSpotify && UserIsMissingSpotify(user))
             {
                 logger.LogInformation("User {user} was missing spotify authorization for command {command}", user, this);
-                await RequestSpotifyAuthForUser(user, update, logger);
+                await RequestSpotifyAuthForUser(user, message, logger);
 
                 return;
             }
@@ -64,12 +64,12 @@ namespace MB.Telegram.Commands
             if (UserIsMissingScopes(user))
             {
                 logger.LogInformation("User {user} was missing scopes {scopes} for command {command}", user, string.Join(" ", ScopesRequired), this);
-                await ProcessMissingScopes(user, update, isAuthorizationCallback, logger);
+                await ProcessMissingScopes(user, message, isAuthorizationCallback, logger);
 
                 return;
             }
 
-            await ProcessInternal(user, update, logger, isAuthorizationCallback);
+            await ProcessInternal(user, message, logger, isAuthorizationCallback);
         }
 
         private bool UserIsMissingSpotify(MBUser user)
@@ -77,18 +77,18 @@ namespace MB.Telegram.Commands
             return string.IsNullOrWhiteSpace(user.SpotifyId);
         }
 
-        private async Task RequestSpotifyAuthForUser(MBUser user, Update update, ILogger logger)
+        private async Task RequestSpotifyAuthForUser(MBUser user, Message message, ILogger logger)
         {
-            if (update.Message.Chat.Type != ChatType.Private)
+            if (message.Chat.Type != ChatType.Private)
             {
                 await TelegramClient.SendTextMessageAsync(
-                    update.Message.Chat.Id,
+                    message.Chat.Id,
                     $"Sure thing... Sending you a message shortly to get us connected to Spotify");
             }
 
             var state = new AuthorizationState()
             {
-                Update = update,
+                Message = message,
                 UserId = user.Id,
             };
 
@@ -103,12 +103,12 @@ namespace MB.Telegram.Commands
                 }));
         }
 
-        private async Task RequestTelegramAuthForUser(MBUser user, Update update, ILogger logger)
+        private async Task RequestTelegramAuthForUser(MBUser user, Message message, ILogger logger)
         {
-            logger.LogInformation("Having user {user} auth with Telegram (chat: {chatid})", user, update.Message.Chat.Id);
-            var state = update.Base64Encode();
+            logger.LogInformation("Having user {user} auth with Telegram (chat: {chatid})", user, message.Chat.Id);
+            var state = message.Base64Encode();
             await TelegramClient.SendTextMessageAsync(
-                update.Message.Chat.Id,
+                message.Chat.Id,
                 $"Sure thing... First, let's get connected.... in private 😉👅",
                 replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton()
@@ -117,7 +117,7 @@ namespace MB.Telegram.Commands
                     LoginUrl = new LoginUrl()
                     {
                         RequestWriteAccess = true,
-                        Url = $"{Config.GetValue<string>("baseUrl")}/telegram?state={state}"
+                        Url = $"{Config.GetValue<string>("baseUrl")}/auth/telegram?state={state}"
                     }
                 }));
             return;
@@ -125,10 +125,10 @@ namespace MB.Telegram.Commands
 
         private bool UserIsNotConnected(MBUser user)
         {
-            return !user.ChatServiceAuthDate.HasValue;
+            return !user.ServiceAuthDate.HasValue;
         }
 
-        private async Task ProcessMissingScopes(MBUser user, Update update, bool isAuthorizationCallback, ILogger log)
+        private async Task ProcessMissingScopes(MBUser user, Message message, bool isAuthorizationCallback, ILogger log)
         {
             if (isAuthorizationCallback)
             {
@@ -138,7 +138,7 @@ namespace MB.Telegram.Commands
                 log.LogWarning("User {user} denied scopes {scopes} for commmand {command}", user, string.Join(" ", ScopesRequired), this);
 
                 await TelegramClient.SendTextMessageAsync(
-                    update.Message.Chat.Id,
+                    message.Chat.Id,
                     $@"Sorry {user.ToTelegramUserLink()} but you need to grant additional permissions in order for us to run this command.",
                     ParseMode.Html);
                 return;
@@ -147,17 +147,17 @@ namespace MB.Telegram.Commands
             // Request additional scopes
             var state = new AuthorizationState()
             {
-                Update = update,
+                Message = message,
                 UserId = user.Id
             };
 
-            var message = string.IsNullOrWhiteSpace(user.SpotifyId)
+            var response = string.IsNullOrWhiteSpace(user.SpotifyId)
                 ? $"Sure! lets get you connected first. Click this link and authorize me to manage your spotify player."
                 : $"Sorry {user.ToTelegramUserLink()} but we need additional permissions from you to do that. Please click this link and we'll get that sorted";
 
             await TelegramClient.SendTextMessageAsync(
-                update.Message.Chat.Id,
-                message,
+                message.Chat.Id,
+                response,
                 ParseMode.Html,
                 replyMarkup: new InlineKeyboardMarkup(
                     new InlineKeyboardButton()
@@ -173,7 +173,7 @@ namespace MB.Telegram.Commands
             return !ScopesRequired.All(scope => user.SpotifyScopes?.Contains(scope) ?? false);
         }
 
-        protected abstract Task ProcessInternal(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false);
+        protected abstract Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false);
 
         public override string ToString()
         {
