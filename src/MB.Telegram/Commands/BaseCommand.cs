@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using User = MB.Telegram.Models.User;
+using MBUser = MB.Telegram.Models.MBUser;
 
 namespace MB.Telegram.Commands
 {
@@ -32,30 +32,44 @@ namespace MB.Telegram.Commands
         {
             return message.StartsWith(CommandString, StringComparison.CurrentCultureIgnoreCase);
         }
-        public async Task Process(User user, Update update, ILogger logger)
+        public async Task Process(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
         {
-            if (!ScopesRequired.All(scope => user.SpotifyScopes.Contains(scope)))
+            if (!ScopesRequired.All(scope => user.SpotifyScopes?.Contains(scope) ?? false))
             {
-                var state = new AuthorizationState()
+                if (isAuthorizationCallback)
                 {
-                    ChatId = update.Message.Chat.Id.ToString(),
-                    TelegramUpdateId = update.Id,
-                    UserId = user.Id
-                };
-                await TelegramClient.SendTextMessageAsync(
-                    update.Message.Chat.Id,
-                    $@"Sorry {user.ToTelegramUserLink()} but we need additional permissions from you to do that. 
-                    Please click this link and we'll get that sorted:<br/>
-                    <br/>
-                    {SpotifyService.GetAuthorizationUri(user, state, ScopesRequired)}",
-                    ParseMode.Html
-                );
+                    await TelegramClient.SendTextMessageAsync(
+                        update.Message.Chat.Id,
+                        $@"Sorry {user.ToTelegramUserLink()} but you need to grant additional permissions in order for us to run this command.",
+                        ParseMode.Html);
+                }
+                else
+                {
+                    var state = new AuthorizationState()
+                    {
+                        Update = update,
+                        UserId = user.Id
+                    };
+
+                    var message = string.IsNullOrWhiteSpace(user.SpotifyId)
+                        ? $"Sure! lets get you connected first. Click this link and authorize me to manage your spotify player."
+                        : $"Sorry {user.ToTelegramUserLink()} but we need additional permissions from you to do that. Please click this link and we'll get that sorted";
+
+                    // TODO: Make this a button?
+                    await TelegramClient.SendTextMessageAsync(
+                        update.Message.Chat.Id,
+                        message + "\n"
+                        + "\n"
+                        + SpotifyService.GetAuthorizationUri(user, state, ScopesRequired),
+                        ParseMode.Html
+                    );
+                }
                 return;
             }
 
-            await ProcessInternal(user, update, logger);
+            await ProcessInternal(user, update, logger, isAuthorizationCallback);
         }
 
-        protected abstract Task ProcessInternal(User user, Update update, ILogger logger);
+        protected abstract Task ProcessInternal(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false);
     }
 }

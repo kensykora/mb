@@ -11,7 +11,7 @@ namespace MB.Telegram.Commands
     {
         public ListenCommand()
         {
-            
+
         }
         public ListenCommand(ITelegramBotClient telegramClient, ISpotifyService spotifyService) : base(telegramClient, spotifyService)
         {
@@ -21,7 +21,7 @@ namespace MB.Telegram.Commands
 
         public override string[] ScopesRequired => new[] { Scopes.Streaming };
 
-        protected override async Task ProcessInternal(Models.User user, Update update, ILogger logger)
+        protected override async Task ProcessInternal(Models.MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
         {
             await TelegramClient.SendTextMessageAsync(update.Message.Chat.Id, "not done");
         }

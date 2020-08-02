@@ -5,7 +5,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace MB.Telegram.Models
 {
-    public class User : TableEntity
+    public class MBUser : TableEntity
     {
         public ChatServices Service { get; set; }
         public string ServiceId { get; set; }
@@ -16,12 +16,12 @@ namespace MB.Telegram.Models
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string SpotifyScopes { get; set; }
-        
+
         [IgnoreProperty]
         public List<string> SpotifyScopesList
         {
-            get => SpotifyScopes.Split(' ').ToList();
-            set => string.Join(' ',value);
+            get => SpotifyScopes?.Split(' ').ToList();
+            set => string.Join(' ', value ?? new List<string>());
         }
         public string Id
         {

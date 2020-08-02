@@ -8,7 +8,7 @@ namespace MB.Telegram
     {
         public MappingProfile()
         {
-            CreateMap<Update, MB.Telegram.Models.User>()
+            CreateMap<Update, MBUser>()
                 .ForMember(dest => dest.Service, opt => opt.MapFrom(src => ChatServices.Telegram))
                 .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.Message.From.Id))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => $"{Prefix.Telegram}-{src.Message.From.Id.ToString()}"))

@@ -8,10 +8,10 @@ namespace MB.Telegram.Services
 {
     public interface IUserService
     {
-        Task CreateUser(User user);
-        Task SetLastSeenUser(User user);
-        Task<User> GetUser(string id);
-        Task UpdateSpotifyDetails(User user, string scopes, string spotifyId);
+        Task CreateUser(MBUser user);
+        Task SetLastSeenUser(MBUser user);
+        Task<MBUser> GetUser(string id);
+        Task UpdateSpotifyDetails(MBUser user, string scopes, string spotifyId);
     }
 
     public class UserService : IUserService
@@ -27,26 +27,26 @@ namespace MB.Telegram.Services
             table.CreateIfNotExistsAsync();
         }
 
-        public async Task CreateUser(User user)
+        public async Task CreateUser(MBUser user)
         {
             await table.ExecuteAsync(TableOperation.Insert(user));
         }
 
-        public async Task SetLastSeenUser(User user)
+        public async Task SetLastSeenUser(MBUser user)
         {
             user.LastSeen = DateTimeOffset.UtcNow;
 
             await table.ExecuteAsync(TableOperation.InsertOrMerge(user));
         }
 
-        public async Task<User> GetUser(string id)
+        public async Task<MBUser> GetUser(string id)
         {
-            var result = await table.ExecuteAsync(TableOperation.Retrieve<User>(User.GetPartitionKey(id), id));
+            var result = await table.ExecuteAsync(TableOperation.Retrieve<MBUser>(MBUser.GetPartitionKey(id), id));
 
-            return result.Result as User;
+            return result.Result as MBUser;
         }
 
-        public async Task UpdateSpotifyDetails(User user, string scopes, string spotifyId)
+        public async Task UpdateSpotifyDetails(MBUser user, string scopes, string spotifyId)
         {
             user.SpotifyScopes = scopes;
             user.SpotifyId = spotifyId;

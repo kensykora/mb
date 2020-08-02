@@ -47,6 +47,8 @@ namespace MB.Telegram
             // error=
             // state=
 
+            // TODO: Verify the spotify account came from the user that authorized it
+
             if (!string.IsNullOrWhiteSpace(req.Query["error"]))
             {
                 log.LogInformation("User spotify error: {error}", req.Query["error"]);
@@ -93,16 +95,14 @@ namespace MB.Telegram
 
             await spotifyService.RedeemAuthorizationCode(user, req.Query["code"].FirstOrDefault());
 
-            var update = (await telegramClient.GetUpdatesAsync(offset: state.TelegramUpdateId, limit: 1)).First();
-
-            var command = commandService.GetCommand(update.Message.Text);
+            var command = commandService.GetCommand(state.Update.Message.Text);
             if (command == null)
             {
-                log.LogCritical("No command callback for message! This shouldn't ever happen {message} {user} {chat}", update.Message.Text, state.UserId, state.ChatId);
+                log.LogCritical("No command callback for message! This shouldn't ever happen {message} {user}", state.Update.Message.Text, state.UserId);
                 return new InternalServerErrorResult();
             }
 
-            await command.Process(user, update, log);
+            await command.Process(user, state.Update, log, isAuthorizationCallback: true);
 
             // TODO: Figure out how to redirect to specific chat
             //return new RedirectResult($"https://tg.me/{config.GetValue<string>("telegramBotUsername")}");
@@ -133,11 +133,11 @@ namespace MB.Telegram
             }
 
             // Check to see if it's from a user
-            MB.Telegram.Models.User user = null;
+            MB.Telegram.Models.MBUser user = null;
             // TODO: Split this out?
             if (update?.Message?.From != null)
             {
-                user = mapper.Map<MB.Telegram.Models.User>(update);
+                user = mapper.Map<MB.Telegram.Models.MBUser>(update);
             }
             else
             {

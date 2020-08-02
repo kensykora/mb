@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Azure.Security.KeyVault.Secrets;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SpotifyAPI.Web;
+using Telegram.Bot.Types;
 
 namespace MB.Telegram.Services
 {
@@ -14,8 +16,8 @@ namespace MB.Telegram.Services
     {
         Uri RedirectUri { get; }
 
-        Uri GetAuthorizationUri(User user, AuthorizationState state, string[] additionalScopes = null);
-        Task RedeemAuthorizationCode(User user, string authorizationCode);
+        Uri GetAuthorizationUri(MBUser user, AuthorizationState state, string[] additionalScopes = null);
+        Task RedeemAuthorizationCode(MBUser user, string authorizationCode);
         string SerializeState(AuthorizationState state);
         AuthorizationState DeserializeState(string state);
     }
@@ -39,9 +41,9 @@ namespace MB.Telegram.Services
 
         public Uri RedirectUri => new Uri(config.GetValue<string>("baseUrl") + "/spotify");
 
-        public Uri GetAuthorizationUri(User user, AuthorizationState state, string[] additionalScopes = null)
+        public Uri GetAuthorizationUri(MBUser user, AuthorizationState state, string[] additionalScopes = null)
         {
-            var scopes = user.SpotifyScopesList;
+            var scopes = user.SpotifyScopesList ?? new List<string>();
             if (additionalScopes != null)
             {
                 foreach (var scope in additionalScopes)
@@ -64,7 +66,7 @@ namespace MB.Telegram.Services
             }.ToUri();
         }
 
-        public async Task RedeemAuthorizationCode(User user, string authorizationCode)
+        public async Task RedeemAuthorizationCode(MBUser user, string authorizationCode)
         {
             var response = await new OAuthClient().RequestToken(
                 new AuthorizationCodeTokenRequest(
@@ -101,9 +103,8 @@ namespace MB.Telegram.Services
 
     public class AuthorizationState
     {
-        public string ChatId { get; set; }
         public string UserId { get; set; }
-        public int TelegramUpdateId { get; set; }
+        public Update Update { get; set; }
         // TODO: Security Token
     }
 }

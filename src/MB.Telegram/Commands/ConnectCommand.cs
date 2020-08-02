@@ -9,7 +9,7 @@ using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using User = MB.Telegram.Models.User;
+using MBUser = MB.Telegram.Models.MBUser;
 
 namespace MB.Telegram.Commands
 {
@@ -32,16 +32,19 @@ namespace MB.Telegram.Commands
             this.config = config;
         }
 
-        protected override async Task ProcessInternal(User user, Update update, ILogger logger)
+        protected override async Task ProcessInternal(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
         {
             var record = await userService.GetUser(user.Id);
 
-            if (update.Message.Text.Contains("again", StringComparison.CurrentCultureIgnoreCase) || user == null || string.IsNullOrWhiteSpace(user.SpotifyId))
+            if (!isAuthorizationCallback 
+                && (
+                    update.Message.Text.Contains("again", StringComparison.CurrentCultureIgnoreCase)  // "/connect again" command
+                    || user == null 
+                    || string.IsNullOrWhiteSpace(user.SpotifyId)))
             {
                 var state = new AuthorizationState()
                 {
-                    ChatId = update.Message.Chat.Id.ToString(),
-                    TelegramUpdateId = update.Id,
+                    Update = update,
                     UserId = user.Id,
                 };
                 await TelegramClient.SendTextMessageAsync(

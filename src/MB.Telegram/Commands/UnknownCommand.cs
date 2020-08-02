@@ -4,7 +4,7 @@ using MB.Telegram.Services;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using User = MB.Telegram.Models.User;
+using MBUser = MB.Telegram.Models.MBUser;
 
 namespace MB.Telegram.Commands
 {
@@ -21,7 +21,7 @@ namespace MB.Telegram.Commands
             return true;
         }
 
-        protected override async Task ProcessInternal(User user, Update update, ILogger logger)
+        protected override async Task ProcessInternal(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
         {
             await TelegramClient.SendTextMessageAsync(update.Message.Chat.Id, $"I'm not sure how to deal with this: '{update.Message.Text}'");
         }

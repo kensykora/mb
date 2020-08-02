@@ -3,13 +3,13 @@ using MB.Telegram.Models;
 using MB.Telegram.Services;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot.Types;
-using User = MB.Telegram.Models.User;
+using MBUser = MB.Telegram.Models.MBUser;
 
 namespace MB.Telegram.Commands
 {
     public interface IChatCommand
     {
-        Task Process(User user, Update update, ILogger logger);
+        Task Process(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false);
 
         bool CanHandle(string message);
     }
