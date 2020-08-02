@@ -9,6 +9,7 @@ using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 using MBUser = MB.Telegram.Models.MBUser;
 
 namespace MB.Telegram.Commands
@@ -49,7 +50,12 @@ namespace MB.Telegram.Commands
                 };
                 await TelegramClient.SendTextMessageAsync(
                     update.Message.Chat.Id, 
-                    $"Click here to sign up: {SpotifyService.GetAuthorizationUri(user, state)}");
+                    $"Sure thing. Let's get started.",
+                    replyMarkup: new InlineKeyboardMarkup(
+                    new InlineKeyboardButton() { 
+                        Text = "Connect Account", 
+                        Url = SpotifyService.GetAuthorizationUri(user, state, ScopesRequired).ToString() 
+                    }));
             }
             else
             {

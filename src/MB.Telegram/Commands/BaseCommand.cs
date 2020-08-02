@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 using MBUser = MB.Telegram.Models.MBUser;
 
 namespace MB.Telegram.Commands
@@ -34,42 +35,66 @@ namespace MB.Telegram.Commands
         }
         public async Task Process(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
         {
-            if (!ScopesRequired.All(scope => user.SpotifyScopes?.Contains(scope) ?? false))
+            if (UserIsMissingScopes(user))
             {
-                if (isAuthorizationCallback)
-                {
-                    await TelegramClient.SendTextMessageAsync(
-                        update.Message.Chat.Id,
-                        $@"Sorry {user.ToTelegramUserLink()} but you need to grant additional permissions in order for us to run this command.",
-                        ParseMode.Html);
-                }
-                else
-                {
-                    var state = new AuthorizationState()
-                    {
-                        Update = update,
-                        UserId = user.Id
-                    };
+                logger.LogInformation("User {user} was missing scopes {scopes} for command {command]", user, string.Join(" ", ScopesRequired), this);
+                await ProcessMissingScopes(user, update, isAuthorizationCallback, logger);
 
-                    var message = string.IsNullOrWhiteSpace(user.SpotifyId)
-                        ? $"Sure! lets get you connected first. Click this link and authorize me to manage your spotify player."
-                        : $"Sorry {user.ToTelegramUserLink()} but we need additional permissions from you to do that. Please click this link and we'll get that sorted";
-
-                    // TODO: Make this a button?
-                    await TelegramClient.SendTextMessageAsync(
-                        update.Message.Chat.Id,
-                        message + "\n"
-                        + "\n"
-                        + SpotifyService.GetAuthorizationUri(user, state, ScopesRequired),
-                        ParseMode.Html
-                    );
-                }
                 return;
             }
 
             await ProcessInternal(user, update, logger, isAuthorizationCallback);
         }
 
+        private async Task ProcessMissingScopes(MBUser user, Update update, bool isAuthorizationCallback, ILogger log)
+        {
+            if (isAuthorizationCallback)
+            {
+                // User already setup, this is an auth callback.. they must have denied scopes?
+                // TODO: Send through error state from auth call
+
+                log.LogWarning("User {user} denied scopes {scopes} for commmand {command}", user, string.Join(" ", ScopesRequired), this);
+
+                await TelegramClient.SendTextMessageAsync(
+                    update.Message.Chat.Id,
+                    $@"Sorry {user.ToTelegramUserLink()} but you need to grant additional permissions in order for us to run this command.",
+                    ParseMode.Html);
+                return;
+            }
+
+            // Request additional scopes
+            var state = new AuthorizationState()
+            {
+                Update = update,
+                UserId = user.Id
+            };
+
+            var message = string.IsNullOrWhiteSpace(user.SpotifyId)
+                ? $"Sure! lets get you connected first. Click this link and authorize me to manage your spotify player."
+                : $"Sorry {user.ToTelegramUserLink()} but we need additional permissions from you to do that. Please click this link and we'll get that sorted";
+
+            await TelegramClient.SendTextMessageAsync(
+                update.Message.Chat.Id,
+                message,
+                ParseMode.Html,
+                replyMarkup: new InlineKeyboardMarkup(
+                    new InlineKeyboardButton() { 
+                        Text = "Connect Account", 
+                        Url = SpotifyService.GetAuthorizationUri(user, state, ScopesRequired).ToString() 
+                    })
+            );
+        }
+
+        private bool UserIsMissingScopes(MBUser user)
+        {
+            return !ScopesRequired.All(scope => user.SpotifyScopes?.Contains(scope) ?? false);
+        }
+
         protected abstract Task ProcessInternal(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false);
+
+        public override string ToString()
+        {
+            return this.GetType().Name;
+        }
     }
 }
