@@ -8,6 +8,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using User = MB.Telegram.Models.User;
 
 namespace MB.Telegram.Commands
@@ -35,10 +36,14 @@ namespace MB.Telegram.Commands
         public override async Task Process(User user, Update update, ILogger logger)
         {
             var record = await userService.GetUser(user.Id);
-            
-            if (user == null || string.IsNullOrWhiteSpace(user.SpotifyId))
+
+            if (update.Message.Text.Contains("again", StringComparison.CurrentCultureIgnoreCase) || user == null || string.IsNullOrWhiteSpace(user.SpotifyId))
             {
-                await Client.SendTextMessageAsync(update.Message.Chat.Id, $"Click here to sign up: {spotifyService.GetAuthorizationUri(user.Id)}");
+                await Client.SendTextMessageAsync(update.Message.Chat.Id, $"Click here to sign up: {spotifyService.GetAuthorizationUri(user.Id, update.Message.Chat.Id)}");
+            }
+            else
+            {
+                await Client.SendTextMessageAsync(update.Message.Chat.Id, $"hey [{user.DisplayName}](tg://user?id\\={update.Message.From.Id}), You're already registered dummy", ParseMode.MarkdownV2);
             }
         }
     }

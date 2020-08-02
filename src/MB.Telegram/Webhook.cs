@@ -23,21 +23,17 @@ namespace MB.Telegram
         private readonly IUserService userService;
         private readonly ISpotifyService spotifyService;
         private readonly IMapper mapper;
+        private readonly IConfiguration config;
         private readonly ICommandService commandService;
 
-        public Webhook(ITelegramBotClient telegramClient, Services.IUserService userService, ISpotifyService spotifyService, IMapper mapper, ICommandService commandService)
+        public Webhook(ITelegramBotClient telegramClient, Services.IUserService userService, ISpotifyService spotifyService, IMapper mapper, IConfiguration config, ICommandService commandService)
         {
             this.telegramClient = telegramClient;
             this.userService = userService;
             this.spotifyService = spotifyService;
             this.mapper = mapper;
+            this.config = config;
             this.commandService = commandService;
-        }
-        static Webhook()
-        {
-            var builder = new ConfigurationBuilder()
-                .AddEnvironmentVariables();
-            var config = builder.Build();
         }
 
         [FunctionName("Spotify")]
@@ -71,7 +67,7 @@ namespace MB.Telegram
             }
 
             var splits = state.Split('|');
-            if (splits.Length != 2)
+            if (splits.Length != 3)
             {
                 // TODO: Handle unknown state
                 return new BadRequestObjectResult("Bad State - incorrect splits");
@@ -88,11 +84,16 @@ namespace MB.Telegram
                 return new BadRequestObjectResult("Couldn't find the originating request");
             }
 
+            var chatId = splits[1];
+
             await spotifyService.RedeemAuthorizationCode(user, req.Query["code"].FirstOrDefault());
 
-            // TODO: Redirect to telegram
+            await telegramClient.SendTextMessageAsync(new ChatId(chatId), 
+            $"<a href=\"tg://user?id={user.ServiceId}\">{user.DisplayName}</a> I've got you registered. You are beautiful.", ParseMode.Html);
 
-            return new OkObjectResult("OK");
+            // TODO: Figure out how to redirect to specific chat
+            //return new RedirectResult($"https://tg.me/{config.GetValue<string>("telegramBotUsername")}");
+            return new RedirectResult("tg://");
         }
 
         [FunctionName("Webhook")]

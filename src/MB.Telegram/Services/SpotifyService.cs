@@ -1,10 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using Azure.Security.KeyVault.Secrets;
 using MB.Telegram.Models;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +13,7 @@ namespace MB.Telegram.Services
     {
         Uri RedirectUri { get; }
 
-        Uri GetAuthorizationUri(string userId);
+        Uri GetAuthorizationUri(string userId, long chatId);
         Task RedeemAuthorizationCode(User user, string authorizationCode);
     }
 
@@ -41,7 +36,7 @@ namespace MB.Telegram.Services
 
         public Uri RedirectUri => new Uri(config.GetValue<string>("baseUrl") + "/spotify");
 
-        public Uri GetAuthorizationUri(string userId)
+        public Uri GetAuthorizationUri(string userId, long chatId)
         {
             return new LoginRequest(
                 RedirectUri,
@@ -50,7 +45,7 @@ namespace MB.Telegram.Services
             )
             {
                 Scope = new string[] { }, // TODO: Scopes
-                State = userId + "|abcdefg" // TODO: State
+                State = $"{userId}|{chatId}|abcdefg" // TODO: Security Token
             }.ToUri();
         }
 
@@ -68,25 +63,9 @@ namespace MB.Telegram.Services
             var profile = await spotify.UserProfile.Current();
 
             await userService.UpdateSpotifyDetails(user, response.Scope, profile.Id);
+
+            // TODO: Sec key expiration / purge old secrets
             await secretClient.SetSecretAsync(string.Format(SpotifySecretKeyFormat, user.Id), JsonConvert.SerializeObject(response));
         }
     }
-
-    // public class SpotifyAuthorizationResponseMessage
-    // {
-    //     [JsonProperty("access_token")]
-    //     public string AccessToken { get; set; }
-
-    //     [JsonProperty("token_type")]
-    //     public string TokenType { get; set; }
-
-    //     [JsonProperty("scope")]
-    //     public string Scope { get; set; }
-
-    //     [JsonProperty("expires_in")]
-    //     public int ExpiresIn { get; set; }
-
-    //     [JsonProperty("refresh_token")]
-    //     public string RefreshToken { get; set; }
-    // }
 }

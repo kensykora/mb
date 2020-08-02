@@ -7,6 +7,7 @@ namespace MB.Telegram.Models
     public class User : TableEntity
     {
         public ChatServices Service { get; set; }
+        public string ServiceId {get;set;}
         public DateTimeOffset LastSeen { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
         public string UserName { get; set; }
@@ -29,6 +30,8 @@ namespace MB.Telegram.Models
         {
             return $"{UserName ?? FullName} ({Id})";
         }
+
+        public string DisplayName => FullName ?? $"@{UserName}";
 
         public static string GetPartitionKey(string id)
         {

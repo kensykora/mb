@@ -75,6 +75,7 @@ resource "azurerm_function_app" "mbot_func" {
 
   app_settings = {
     "telegramApiKey"                 = var.telegramApiKey
+    "telegramBotUsername"            = var.telegramBotUsername
     "spotifyClientId"                = var.spotifyClientId
     "spotifyClientSecret"            = var.spotifyClientSecret
     "storageAccountName"             = azurerm_storage_account.mbot_storage.name

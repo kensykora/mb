@@ -4,4 +4,4 @@ Music bot thing.
 
 ## Commands
 
-connect - Connect to spotify
+connect [again] - Connect to spotify
