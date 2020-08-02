@@ -53,9 +53,9 @@ namespace MB.Telegram.Services
         {
             var response = await new OAuthClient().RequestToken(
                 new AuthorizationCodeTokenRequest(
-                    config.GetValue<string>("spotifyClientId"), 
-                    config.GetValue<string>("spotifyClientSecret"), 
-                    authorizationCode, 
+                    config.GetValue<string>("spotifyClientId"),
+                    config.GetValue<string>("spotifyClientSecret"),
+                    authorizationCode,
                     RedirectUri)
             );
 
@@ -64,8 +64,13 @@ namespace MB.Telegram.Services
 
             await userService.UpdateSpotifyDetails(user, response.Scope, profile.Id);
 
-            // TODO: Sec key expiration / purge old secrets
-            await secretClient.SetSecretAsync(string.Format(SpotifySecretKeyFormat, user.Id), JsonConvert.SerializeObject(response));
+            var secret = new KeyVaultSecret(
+                    name: string.Format(SpotifySecretKeyFormat, user.Id), 
+                    value: JsonConvert.SerializeObject(response));
+            secret.Properties.ContentType = "application/json";
+            secret.Properties.NotBefore = response.CreatedAt.ToUniversalTime();
+            secret.Properties.ExpiresOn = response.CreatedAt.AddSeconds(response.ExpiresIn).ToUniversalTime();
+            await secretClient.SetSecretAsync(secret);
         }
     }
 }
