@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using MB.Telegram.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SpotifyAPI.Web;
 using Telegram.Bot;
@@ -13,13 +14,18 @@ namespace MB.Telegram.Commands
         {
 
         }
-        public ListenCommand(ITelegramBotClient telegramClient, ISpotifyService spotifyService) : base(telegramClient, spotifyService)
+        public ListenCommand(ITelegramBotClient telegramClient, ISpotifyService spotifyService, IConfiguration config) : base(telegramClient, spotifyService, config)
         {
         }
 
-        public override string CommandString => "/listen";
+        public override string Command => "/listen";
+        public override string Description => "Join the listen session";
 
         public override string[] ScopesRequired => new[] { Scopes.Streaming };
+
+        public override bool RequiresBotConnection => true;
+
+        public override bool RequiresSpotify => true;
 
         protected override async Task ProcessInternal(Models.MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false)
         {

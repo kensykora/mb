@@ -11,10 +11,12 @@ namespace MB.Telegram.Models
         public string ServiceId { get; set; }
         public DateTimeOffset LastSeen { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
+        public DateTimeOffset? ChatServiceAuthDate { get; set; }
         public string UserName { get; set; }
         public string FullName { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public string PhotoUrl { get; set; }
         public string SpotifyScopes { get; set; }
 
         [IgnoreProperty]

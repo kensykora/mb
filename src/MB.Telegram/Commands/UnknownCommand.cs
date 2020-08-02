@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using MB.Telegram.Models;
 using MB.Telegram.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -11,8 +12,10 @@ namespace MB.Telegram.Commands
     public class UnknownCommand : BaseCommand
     {
         public UnknownCommand() { }
-        public UnknownCommand(ITelegramBotClient client, ISpotifyService spotifyService) : base(client, spotifyService) { }
-        public override string CommandString => null;
+        public UnknownCommand(ITelegramBotClient client, ISpotifyService spotifyService, IConfiguration config) : base(client, spotifyService, config) { }
+        public override string Command => null;
+        public override string Description => null;
+        public override bool Publish => false;
 
         public override string[] ScopesRequired => new string[] { };
 

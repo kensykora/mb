@@ -9,6 +9,11 @@ namespace MB.Telegram.Commands
 {
     public interface IChatCommand
     {
+        string Command { get; }
+        string Description { get; }
+        bool Publish { get; }
+        bool RequiresSpotify { get; }
+        bool RequiresBotConnection { get; }
         Task Process(MBUser user, Update update, ILogger logger, bool isAuthorizationCallback = false);
 
         bool CanHandle(string message);

@@ -11,6 +11,7 @@ namespace MB.Telegram.Services
         Task CreateUser(MBUser user);
         Task SetLastSeenUser(MBUser user);
         Task<MBUser> GetUser(string id);
+        Task UpdateUser(MBUser user);
         Task UpdateSpotifyDetails(MBUser user, string scopes, string spotifyId);
     }
 
@@ -52,6 +53,11 @@ namespace MB.Telegram.Services
             user.SpotifyId = spotifyId;
             user.LastSeen = DateTimeOffset.UtcNow;
 
+            await table.ExecuteAsync(TableOperation.Merge(user));
+        }
+
+        public async Task UpdateUser(MBUser user)
+        {
             await table.ExecuteAsync(TableOperation.Merge(user));
         }
     }

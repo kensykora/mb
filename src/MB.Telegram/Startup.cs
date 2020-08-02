@@ -16,6 +16,8 @@ using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Table;
 using SpotifyAPI.Web;
 using Telegram.Bot;
+using Telegram.Bot.Extensions.LoginWidget;
+using Telegram.Bot.Types;
 
 [assembly: FunctionsStartup(typeof(MB.Telegram.Startup))]
 
@@ -32,6 +34,7 @@ namespace MB.Telegram
             var config = cb.Build();
 
             builder.Services.AddSingleton<ITelegramBotClient>(x => new TelegramBotClient(config.GetValue<string>("telegramApiKey")));
+            builder.Services.AddSingleton<TelegramLoginVerify>(x => new TelegramLoginVerify(config.GetValue<string>("telegramApiKey")));
             builder.Services.AddSingleton<IConfiguration>(x => config);
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddSingleton<IUserService, UserService>();
@@ -42,9 +45,9 @@ namespace MB.Telegram
                 config.GetValue<string>("storageAccountKey"),
                 config.GetValue<bool?>("useLocalStorage")
             ));
-            builder.Services.AddSingleton<SecretClient>(x => 
+            builder.Services.AddSingleton<SecretClient>(x =>
                 new SecretClient(
-                    new Uri($"https://{config.GetValue<string>("keyVaultName")}.vault.azure.net"), 
+                    new Uri($"https://{config.GetValue<string>("keyVaultName")}.vault.azure.net"),
                     new DefaultAzureCredential(includeInteractiveCredentials: Debugger.IsAttached)));
 
             var commands = FindDerivedTypes(Assembly.GetExecutingAssembly(), typeof(BaseCommand))
@@ -52,10 +55,22 @@ namespace MB.Telegram
                     .ToList();
 
             builder.Services.AddSingleton<List<IChatCommand>>(commands);
+            List<BotCommand> telegramCommands = new List<BotCommand>();
             foreach (var cmd in commands)
             {
                 builder.Services.AddScoped(cmd.GetType());
+                if (cmd.Publish)
+                {
+                    telegramCommands.Add(new BotCommand()
+                    {
+                        Command = cmd.Command,
+                        Description = cmd.Description
+                    });
+                }
             }
+
+            var telegram = new TelegramBotClient(config.GetValue<string>("telegramApiKey"));
+            telegram.SetMyCommandsAsync(telegramCommands);
         }
         public IEnumerable<Type> FindDerivedTypes(Assembly assembly, Type baseType)
         {

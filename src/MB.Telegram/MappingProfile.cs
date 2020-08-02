@@ -18,7 +18,13 @@ namespace MB.Telegram
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Message.From.Username))
                 .ForMember(dest => dest.SpotifyId, opt => opt.Ignore());
 
-
+            CreateMap<TelegramUser, MBUser>()
+                .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.FirstName))
+                .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName))
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.UserName))
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => $"{Prefix.Telegram}-{src.Id.ToString()}"))
+                .ForMember(dest => dest.ChatServiceAuthDate, opt => opt.MapFrom(src => src.AuthDate))
+                .ForMember(dest => dest.PhotoUrl, opt => opt.MapFrom(src => src.PhotoUrl));
         }
     }
 }
