@@ -14,6 +14,7 @@ using MB.Telegram.Services;
 using AutoMapper;
 using Telegram.Bot.Types.Enums;
 using System.Linq;
+using System.Web.Http;
 
 namespace MB.Telegram
 {
@@ -59,24 +60,30 @@ namespace MB.Telegram
                 return new BadRequestObjectResult("Something went wrong. I'll look into it.");
             }
 
-            var state = req.Query["state"].FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(state))
+            var stateString = req.Query["state"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(stateString))
             {
                 // TODO: Handle bad state error
+                log.LogError("No state");
+                return new BadRequestObjectResult("No State");
+            }
+
+            AuthorizationState state = null;
+
+            try
+            {
+                state = spotifyService.DeserializeState(stateString);
+            }
+            catch (Exception ex)
+            {
+                // TODO: Handle bad state error
+                log.LogError(ex, "Unexpected error deserializing state");
                 return new BadRequestObjectResult("Bad State");
             }
 
-            var splits = state.Split('|');
-            if (splits.Length != 3)
-            {
-                // TODO: Handle unknown state
-                return new BadRequestObjectResult("Bad State - incorrect splits");
-            }
+            // TODO: Validate security token
 
-            // TODO: Validate security token in state
-            var userId = splits[0];
-
-            var user = await userService.GetUser(userId);
+            var user = await userService.GetUser(state.UserId);
 
             if (user == null)
             {
@@ -84,12 +91,18 @@ namespace MB.Telegram
                 return new BadRequestObjectResult("Couldn't find the originating request");
             }
 
-            var chatId = splits[1];
-
             await spotifyService.RedeemAuthorizationCode(user, req.Query["code"].FirstOrDefault());
 
-            await telegramClient.SendTextMessageAsync(new ChatId(chatId), 
-            $"<a href=\"tg://user?id={user.ServiceId}\">{user.DisplayName}</a> I've got you registered. You are beautiful.", ParseMode.Html);
+            var update = (await telegramClient.GetUpdatesAsync(offset: state.TelegramUpdateId, limit: 1)).First();
+
+            var command = commandService.GetCommand(update.Message.Text);
+            if (command == null)
+            {
+                log.LogCritical("No command callback for message! This shouldn't ever happen {message} {user} {chat}", update.Message.Text, state.UserId, state.ChatId);
+                return new InternalServerErrorResult();
+            }
+
+            await command.Process(user, update, log);
 
             // TODO: Figure out how to redirect to specific chat
             //return new RedirectResult($"https://tg.me/{config.GetValue<string>("telegramBotUsername")}");
@@ -141,7 +154,7 @@ namespace MB.Telegram
                     user.CreatedOn = DateTimeOffset.UtcNow;
                     user.LastSeen = DateTimeOffset.UtcNow;
                     await userService.CreateUser(user);
-                    
+
                 }
                 else
                 {

@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Threading.Tasks;
 using Azure.Security.KeyVault.Secrets;
 using MB.Telegram.Models;
@@ -13,8 +14,10 @@ namespace MB.Telegram.Services
     {
         Uri RedirectUri { get; }
 
-        Uri GetAuthorizationUri(string userId, long chatId);
+        Uri GetAuthorizationUri(User user, AuthorizationState state, string[] additionalScopes = null);
         Task RedeemAuthorizationCode(User user, string authorizationCode);
+        string SerializeState(AuthorizationState state);
+        AuthorizationState DeserializeState(string state);
     }
 
     public class SpotifyService : ISpotifyService
@@ -36,16 +39,28 @@ namespace MB.Telegram.Services
 
         public Uri RedirectUri => new Uri(config.GetValue<string>("baseUrl") + "/spotify");
 
-        public Uri GetAuthorizationUri(string userId, long chatId)
+        public Uri GetAuthorizationUri(User user, AuthorizationState state, string[] additionalScopes = null)
         {
+            var scopes = user.SpotifyScopesList;
+            if (additionalScopes != null)
+            {
+                foreach (var scope in additionalScopes)
+                {
+                    if (!scopes.Contains(scope))
+                    {
+                        scopes.Add(scope);
+                    }
+                }
+            }
+
             return new LoginRequest(
                 RedirectUri,
                 config.GetValue<string>("spotifyClientId"),
                 LoginRequest.ResponseType.Code
             )
             {
-                Scope = new string[] { }, // TODO: Scopes
-                State = $"{userId}|{chatId}|abcdefg" // TODO: Security Token
+                Scope = scopes,
+                State = SerializeState(state)
             }.ToUri();
         }
 
@@ -65,12 +80,30 @@ namespace MB.Telegram.Services
             await userService.UpdateSpotifyDetails(user, response.Scope, profile.Id);
 
             var secret = new KeyVaultSecret(
-                    name: string.Format(SpotifySecretKeyFormat, user.Id), 
+                    name: string.Format(SpotifySecretKeyFormat, user.Id),
                     value: JsonConvert.SerializeObject(response));
             secret.Properties.ContentType = "application/json";
             secret.Properties.NotBefore = response.CreatedAt.ToUniversalTime();
             secret.Properties.ExpiresOn = response.CreatedAt.AddSeconds(response.ExpiresIn).ToUniversalTime();
             await secretClient.SetSecretAsync(secret);
         }
+
+        public AuthorizationState DeserializeState(string state)
+        {
+            return JsonConvert.DeserializeObject<AuthorizationState>(Encoding.UTF8.GetString(Convert.FromBase64String(state)));
+        }
+
+        public string SerializeState(AuthorizationState state)
+        {
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(state)));
+        }
+    }
+
+    public class AuthorizationState
+    {
+        public string ChatId { get; set; }
+        public string UserId { get; set; }
+        public int TelegramUpdateId { get; set; }
+        // TODO: Security Token
     }
 }

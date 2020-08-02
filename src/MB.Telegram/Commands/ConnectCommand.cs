@@ -17,33 +17,40 @@ namespace MB.Telegram.Commands
     {
         public override string CommandString => "/connect";
 
+        public override string[] ScopesRequired => new string[] { };
+
         public const string SpotifyAuthorizeUrl = "https://accounts.spotify.com/authorize?response_type=code&client_id={0}&scope={1}&redirect_uri={2}&state={3}";
 
         private const string Spotify_Credential_Key_Format = "spotify_{0}";
-        private readonly CloudTableClient userTable;
         private readonly IUserService userService;
-        private readonly ISpotifyService spotifyService;
         private readonly IConfiguration config;
 
         public ConnectCommand() { }
-        public ConnectCommand(ITelegramBotClient telegramClient, IUserService userService, ISpotifyService spotifyService, IConfiguration config) : base(telegramClient)
+        public ConnectCommand(ITelegramBotClient telegramClient, IUserService userService, ISpotifyService spotifyService, IConfiguration config) : base(telegramClient, spotifyService)
         {
             this.userService = userService;
-            this.spotifyService = spotifyService;
             this.config = config;
         }
 
-        public override async Task Process(User user, Update update, ILogger logger)
+        protected override async Task ProcessInternal(User user, Update update, ILogger logger)
         {
             var record = await userService.GetUser(user.Id);
 
             if (update.Message.Text.Contains("again", StringComparison.CurrentCultureIgnoreCase) || user == null || string.IsNullOrWhiteSpace(user.SpotifyId))
             {
-                await Client.SendTextMessageAsync(update.Message.Chat.Id, $"Click here to sign up: {spotifyService.GetAuthorizationUri(user.Id, update.Message.Chat.Id)}");
+                var state = new AuthorizationState()
+                {
+                    ChatId = update.Message.Chat.Id.ToString(),
+                    TelegramUpdateId = update.Id,
+                    UserId = user.Id,
+                };
+                await TelegramClient.SendTextMessageAsync(
+                    update.Message.Chat.Id, 
+                    $"Click here to sign up: {SpotifyService.GetAuthorizationUri(user, state)}");
             }
             else
             {
-                await Client.SendTextMessageAsync(update.Message.Chat.Id, $"hey [{user.DisplayName}](tg://user?id\\={update.Message.From.Id}), You're already registered dummy", ParseMode.MarkdownV2);
+                await TelegramClient.SendTextMessageAsync(update.Message.Chat.Id, $"{user.ToTelegramUserLink()} you're all set!", ParseMode.Html);
             }
         }
     }

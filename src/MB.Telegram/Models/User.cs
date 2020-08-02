@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.WindowsAzure.Storage.Table;
 
@@ -7,7 +8,7 @@ namespace MB.Telegram.Models
     public class User : TableEntity
     {
         public ChatServices Service { get; set; }
-        public string ServiceId {get;set;}
+        public string ServiceId { get; set; }
         public DateTimeOffset LastSeen { get; set; }
         public DateTimeOffset CreatedOn { get; set; }
         public string UserName { get; set; }
@@ -15,6 +16,13 @@ namespace MB.Telegram.Models
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string SpotifyScopes { get; set; }
+        
+        [IgnoreProperty]
+        public List<string> SpotifyScopesList
+        {
+            get => SpotifyScopes.Split(' ').ToList();
+            set => string.Join(' ',value);
+        }
         public string Id
         {
             get => RowKey;
