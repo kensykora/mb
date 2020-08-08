@@ -59,7 +59,7 @@ namespace MB.Telegram.Functions
             }
 
             var telegramUser = new TelegramUser(req.Query);
-            var user = await userService.GetUser($"{Prefix.Telegram}-{telegramUser.Id}");
+            var user = await userService.GetUser($"{Prefix.Telegram}|{telegramUser.Id}");
 
             if (user == null)
             {

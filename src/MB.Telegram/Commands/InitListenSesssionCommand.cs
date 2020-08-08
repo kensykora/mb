@@ -63,6 +63,7 @@ namespace MB.Telegram.Commands
             listenGroup = new ListenGroup()
             {
                 Id = ListenGroup.GetId(ChatServices.Telegram, message.Chat.Id.ToString()),
+                ServiceId = message.Chat.Id.ToString(),
                 OwnerMBDisplayName = user.DisplayName,
                 OwnerMBUserId = user.Id,
                 OwnerSpotifyUserId = user.SpotifyId,

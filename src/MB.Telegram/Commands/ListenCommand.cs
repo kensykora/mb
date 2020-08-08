@@ -30,8 +30,14 @@ namespace MB.Telegram.Commands
 
         protected override async Task ProcessInternal(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            // TODO : Check for init
-            // Not implemented yet
+            var listenSession = listenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
+
+            if (listenSession == null)
+            {
+                await TelegramClient.SendTextMessageAsync(
+                    message.Chat.Id,
+                    "This group isn't setup for listening. Run /init first.");
+            }
         }
 
         protected override async Task ProcessInternal(MBUser user, CallbackQuery callback, ILogger logger)

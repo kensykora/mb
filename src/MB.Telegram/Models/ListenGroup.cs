@@ -10,7 +10,7 @@ namespace MB.Telegram.Models
             switch (service)
             {
                 case ChatServices.Telegram:
-                    return $"{Prefix.Telegram}-{serviceId}";
+                    return $"{Prefix.Telegram}|{serviceId}";
                 default: throw new NotSupportedException();
             }
         }
@@ -25,12 +25,12 @@ namespace MB.Telegram.Models
             {
                 RowKey = value;
                 PartitionKey = GetPartitionKey(value);
-                Service = value.Split("-")[0] switch
+                Service = value.Split("|")[0] switch
                 {
                     Prefix.Telegram => ChatServices.Telegram,
                     _ => throw new NotSupportedException(),
                 };
-                ServiceId = value.Split("-")[1];
+                ServiceId = value.Split("|")[1];
             }
         }
         public string OwnerMBUserId { get; set; }
