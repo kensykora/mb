@@ -30,7 +30,10 @@ namespace MB.Telegram.Services
 
         public async Task<ListenGroup> GetGroupAsync(ChatServices service, string id)
         {
-            var result = await table.ExecuteAsync(TableOperation.Retrieve<ListenGroup>(ListenGroup.GetPartitionKey(id), id));
+            var result = await table.ExecuteAsync(
+                TableOperation.Retrieve<ListenGroup>(
+                    ListenGroup.GetPartitionKey(ListenGroup.GetId(service, id)), 
+                    ListenGroup.GetId(service, id)));
 
             return result.Result as ListenGroup;
         }
