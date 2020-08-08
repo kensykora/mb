@@ -11,12 +11,26 @@ using MB.Telegram.Services;
 using AutoMapper;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using System.Linq;
 
 namespace MB.Telegram.Functions
 {
     public class TelegramUpdateWebhook
     {
-
+        // Telegram Update Types
+        // message
+        // edited_message
+        // channel_post
+        // edited_channel_post
+        // inline_query
+        // chosen_inline_result
+        // callback_query
+        // shipping_query
+        // pre_checkout_query
+        // poll
+        // poll_answer
+        public static UpdateType[] SupportedUpdateTypes => new UpdateType[] { UpdateType.Message };
+        
         private readonly IUserService userService;
         private readonly IMapper mapper;
         private readonly ICommandService commandService;
@@ -50,17 +64,17 @@ namespace MB.Telegram.Functions
                 return new BadRequestResult();
             }
 
-            if (update.ChannelPost != null || update.EditedChannelPost != null)
-            {
-                var post = update.EditedChannelPost ?? update.ChannelPost;
-                // TODO: Handle channel stuff
-                /*
-                    [8/2/2020 7:48:50 PM] {"update_id":257364048,
-                    "channel_post":{"message_id":2,"chat":{"id":-1001208267207,"title":"music bot test channel","type":"channel"},"date":1596397699,"text":"hi"}}
-                */
-                log.LogInformation("Channel post {channel}, ignoring.", post.Chat.Title);
-                return new OkResult();
-            }
+            // if (update.ChannelPost != null || update.EditedChannelPost != null)
+            // {
+            //     var post = update.EditedChannelPost ?? update.ChannelPost;
+            //     // TODO: Handle channel stuff
+            //     /*
+            //         [8/2/2020 7:48:50 PM] {"update_id":257364048,
+            //         "channel_post":{"message_id":2,"chat":{"id":-1001208267207,"title":"music bot test channel","type":"channel"},"date":1596397699,"text":"hi"}}
+            //     */
+            //     log.LogInformation("Channel post {channel}, ignoring.", post.Chat.Title);
+            //     return new OkResult();
+            // }
 
             var message = update.EditedMessage ?? update.Message;
             switch (message.Type)
@@ -81,38 +95,42 @@ namespace MB.Telegram.Functions
 
         private async Task<IActionResult> HandleTextMessage(Message message, ILogger log)
         {
-            log.LogDebug("Handling text message {message}", message);
+            log.LogDebug("Handling text message {message}", message.Text);
 
             // Check to see if it's from a user
             MB.Telegram.Models.MBUser user = null;
 
             user = mapper.Map<MB.Telegram.Models.MBUser>(message);
 
-            using (log.BeginScope("User {user} sent {message}", user.UserName, message.Text))
+            var search = await userService.GetUser(user.Id);
+
+            if (search == null)
             {
-                var search = await userService.GetUser(user.Id);
+                user.CreatedOn = DateTimeOffset.UtcNow;
+                user.LastSeen = DateTimeOffset.UtcNow;
 
-                if (search == null)
+                if (message.Chat.Type == ChatType.Private)
                 {
-                    user.CreatedOn = DateTimeOffset.UtcNow;
-                    user.LastSeen = DateTimeOffset.UtcNow;
-
-                    if (message.Chat.Type == ChatType.Private)
-                    {
-                        // Private chat implies they have authorized us to send them messages
-                        // We can skip the telegram auth step.
-                        user.ServiceAuthDate = DateTimeOffset.UtcNow;
-                    }
-
-                    await userService.CreateUser(user);
-                }
-                else
-                {
-                    await userService.SetLastSeenUser(search);
-                    user = search;
+                    // Private chat implies they have authorized us to send them messages
+                    // We can skip the telegram auth step.
+                    user.ServiceAuthDate = DateTimeOffset.UtcNow;
                 }
 
-                var command = commandService.GetCommand(message.Text);
+                await userService.CreateUser(user);
+            }
+            else
+            {
+                await userService.SetLastSeenUser(search);
+                user = search;
+            }
+
+            if (!message.Entities.Any(x => x.Type == MessageEntityType.BotCommand))
+            {
+                log.LogInformation("Non-Command received");
+                return new OkResult();
+            }
+
+            var command = commandService.GetCommand(message.Text);
                 if (command == null)
                 {
                     log.LogInformation("Nothing to do for {message} from {user}",
@@ -127,8 +145,9 @@ namespace MB.Telegram.Functions
                     message.Text
                 );
 
-                await command.Process(user, message, log);
-            }
+
+            await command.Process(user, message, log);
+            
 
             return new OkResult();
         }

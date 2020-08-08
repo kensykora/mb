@@ -7,6 +7,7 @@ using AutoMapper;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using MB.Telegram.Commands;
+using MB.Telegram.Functions;
 using MB.Telegram.Services;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,7 @@ using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Table;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 [assembly: FunctionsStartup(typeof(MB.Telegram.Startup))]
 
@@ -70,7 +72,9 @@ namespace MB.Telegram
 
             var telegram = new TelegramBotClient(config.TelegramApiKey);
             telegram.SetMyCommandsAsync(telegramCommands);
-            telegram.SetWebhookAsync(config.BaseUrl + "/webhook");
+
+            // TODO: Handle other types?
+            telegram.SetWebhookAsync(config.BaseUrl + "/webhook", allowedUpdates: TelegramUpdateWebhook.SupportedUpdateTypes);
         }
         public IEnumerable<Type> FindDerivedTypes(Assembly assembly, Type baseType)
         {
