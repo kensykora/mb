@@ -34,6 +34,25 @@ namespace MB.Telegram.Commands
                     message.Chat.Id,
                     "This group isn't setup for listening. Run /init first.");
             }
+
+            var ownerSpotifyClient = await SpotifyService.GetClientAsync(listenSession.OwnerMBUserId);
+            
+
+            var playlist = await ownerSpotifyClient.Playlists.Get(listenSession.SpotifyPlaylistId);
+            if (playlist == null)
+            {
+                // TODO: handle User deleted playlist
+                logger.LogError("Playlist wasn't found.. must have been deleted");
+                return;
+            }
+
+            if (playlist.Tracks.Total == 0)
+            {
+                await TelegramClient.SendTextMessageAsync(
+                    message.Chat.Id,
+                    "No tracks queued up. Add one!");
+                return;
+            }
         }
 
         protected override async Task ProcessInternalAsync(MBUser user, CallbackQuery callback, ILogger logger)

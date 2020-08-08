@@ -20,6 +20,7 @@ namespace MB.Telegram.Services
         string SerializeState(AuthorizationState state);
         AuthorizationState DeserializeState(string state);
         Task<ISpotifyClient> GetClientAsync(MBUser user);
+        Task<ISpotifyClient> GetClientAsync(string mbUserId);
     }
 
     public class SpotifyService : ISpotifyService
@@ -80,15 +81,15 @@ namespace MB.Telegram.Services
             var profile = await spotify.UserProfile.Current();
 
             await userService.UpdateSpotifyDetails(user, response.Scope, profile.Id);
-            await SaveTokenAsync(user, response);
+            await SaveTokenAsync(user.Id, response);
 
             return profile;
         }
 
-        private async Task SaveTokenAsync(MBUser user, AuthorizationCodeTokenResponse response)
+        private async Task SaveTokenAsync(string mbUserId, AuthorizationCodeTokenResponse response)
         {
             var secret = new KeyVaultSecret(
-                                name: GetUserTokenKey(user),
+                                name: GetUserTokenKey(mbUserId),
                                 value: JsonConvert.SerializeObject(response));
             secret.Properties.ContentType = "application/json";
             secret.Properties.NotBefore = response.CreatedAt.ToUniversalTime();
@@ -96,21 +97,26 @@ namespace MB.Telegram.Services
             await secretClient.SetSecretAsync(secret);
         }
 
-        private static string GetUserTokenKey(MBUser user)
+        private static string GetUserTokenKey(string mbUserId)
         {
-            return string.Format(SpotifySecretKeyFormat, user.Id.Replace('|','-'));
+            return string.Format(SpotifySecretKeyFormat, mbUserId.Replace('|','-'));
         }
 
-        public async Task<ISpotifyClient> GetClientAsync(MBUser user)
+        public Task<ISpotifyClient> GetClientAsync(MBUser user)
         {
-            var token = await GetTokenAsync(user);
+            return GetClientAsync(user.Id);
+        }
+
+        public async Task<ISpotifyClient> GetClientAsync(string mbUserId)
+        {
+            var token = await GetTokenAsync(mbUserId);
             var authenticator = new AuthorizationCodeAuthenticator(config.SpotifyClientId, config.SpotifyClientSecret, token);
             authenticator.TokenRefreshed += delegate(object o, AuthorizationCodeTokenResponse token) 
             {
                 // TODO: Logging via constructor - this value of log is currently null
                 // log.LogInformation("Refreshing spotify token for user {user}", user);
                 Task.Run(async () => {
-                    await SaveTokenAsync(user, token);
+                    await SaveTokenAsync(mbUserId, token);
                 }).Wait();
             };
 
@@ -121,9 +127,9 @@ namespace MB.Telegram.Services
             return new SpotifyClient(spotifyConfig);
         }
 
-        private async Task<AuthorizationCodeTokenResponse> GetTokenAsync(MBUser user)
+        private async Task<AuthorizationCodeTokenResponse> GetTokenAsync(string mbUserId)
         {
-            var response = await secretClient.GetSecretAsync(GetUserTokenKey(user));
+            var response = await secretClient.GetSecretAsync(GetUserTokenKey(mbUserId));
 
             if (response.Value == null)
             {
