@@ -124,31 +124,29 @@ namespace MB.Telegram.Functions
                 user = search;
             }
 
-            if (!message.Entities.Any(x => x.Type == MessageEntityType.BotCommand))
+            if (!(message.Entities?.Any(x => x.Type == MessageEntityType.BotCommand) ?? false))
             {
                 log.LogInformation("Non-Command received");
                 return new OkResult();
             }
 
             var command = commandService.GetCommand(message.Text);
-                if (command == null)
-                {
-                    log.LogInformation("Nothing to do for {message} from {user}",
-                        message.Text,
-                        user);
-                    return new OkResult();
-                }
+            if (command == null)
+            {
+                log.LogInformation("Nothing to do for {message} from {user}",
+                    message.Text,
+                    user);
+                return new OkResult();
+            }
 
-                log.LogInformation("Processing command {command} for {user} and message {message}",
-                    command.GetType().Name,
-                    user,
-                    message.Text
-                );
-
+            log.LogInformation("Processing command {command} for {user} and message {message}",
+                command.GetType().Name,
+                user,
+                message.Text
+            );
 
             await command.Process(user, message, log);
             
-
             return new OkResult();
         }
     }
