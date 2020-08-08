@@ -32,12 +32,12 @@ namespace MB.Telegram.Commands
             return true;
         }
 
-        protected override async Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessInternalAsync(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
             await TelegramClient.SendTextMessageAsync(message.Chat.Id, $"I'm not sure how to deal with this: '{message.Text}'");
         }
 
-        protected override Task ProcessInternal(MBUser user, CallbackQuery callback, ILogger logger)
+        protected override Task ProcessInternalAsync(MBUser user, CallbackQuery callback, ILogger logger)
         {
             // Shouldn't be anything to do here... ever
             return Task.CompletedTask;

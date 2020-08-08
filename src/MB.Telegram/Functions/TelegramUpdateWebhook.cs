@@ -135,7 +135,6 @@ READY, GO.","reply_markup":{"inline_keyboard":[[{"text":"Make me the owner!","ca
             {
                 user.CreatedOn = DateTimeOffset.UtcNow;
                 user.LastSeen = DateTimeOffset.UtcNow;
-                user.ServiceAuthDate = DateTimeOffset.UtcNow;
 
                 await userService.CreateUser(user);
             }

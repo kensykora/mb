@@ -98,7 +98,7 @@ namespace MB.Telegram.Services
 
         private static string GetUserTokenKey(MBUser user)
         {
-            return string.Format(SpotifySecretKeyFormat, user.Id);
+            return string.Format(SpotifySecretKeyFormat, user.Id.Replace('|','-'));
         }
 
         public async Task<ISpotifyClient> GetClientAsync(MBUser user)

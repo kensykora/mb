@@ -22,7 +22,7 @@ namespace MB.Telegram
         /// <summary>
         /// How old (in seconds) can authorization attempts be to be considered valid (compared to the auth_date field)
         /// </summary>
-        public long AllowedTimeOffset = 320;
+        public long AllowedTimeOffset = 9999;
 
         private bool _disposed = false;
         private readonly HMACSHA256 _hmac;
@@ -67,6 +67,7 @@ namespace MB.Telegram
                 return Authorization.TooOld;
 
             fields.Remove(Field.Hash);
+            fields.Remove("state");
             StringBuilder dataStringBuilder = new StringBuilder(256);
             foreach (var field in fields)
             {

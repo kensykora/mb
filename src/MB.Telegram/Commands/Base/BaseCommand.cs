@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -59,7 +60,7 @@ namespace MB.Telegram.Commands
             if (await TryHandleRequiresBotConnection(user, logger, callback.Message)) { return; }
             if (await TryHandleRequiresSpotifyConnection(user, logger, callback.Message)) { return; }
 
-            await ProcessInternal(user, callback, logger);
+            await ProcessInternalAsync(user, callback, logger);
         }
 
         public async Task Process(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
@@ -76,7 +77,7 @@ namespace MB.Telegram.Commands
             if (await TryHandleRequiresBotConnection(user, logger, message)) { return; }
             if (await TryHandleRequiresSpotifyConnection(user, logger, message, isAuthorizationCallback)) { return; }
 
-            await ProcessInternal(user, message, logger, isAuthorizationCallback);
+            await ProcessInternalAsync(user, message, logger, isAuthorizationCallback);
         }
 
         private async Task<bool> TryHandleRequiresBotConnection(MBUser user, ILogger logger, Message message)
@@ -153,7 +154,7 @@ namespace MB.Telegram.Commands
 
         private string[] GetNetSpotifyScopesRequired(MBUser user)
         {
-            var result = user.SpotifyScopesList;
+            var result = user.SpotifyScopesList ?? new List<string>();
             foreach (var scope in ScopesRequired)
             {
                 if (!result.Contains(scope))
@@ -284,9 +285,9 @@ namespace MB.Telegram.Commands
                 .All(scope => user.SpotifyScopes?.Contains(scope) ?? false);
         }
 
-        protected abstract Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false);
+        protected abstract Task ProcessInternalAsync(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false);
 
-        protected abstract Task ProcessInternal(MBUser user, CallbackQuery callback, ILogger logger);
+        protected abstract Task ProcessInternalAsync(MBUser user, CallbackQuery callback, ILogger logger);
 
         public override string ToString()
         {

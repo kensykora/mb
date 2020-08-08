@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -69,6 +70,7 @@ namespace MB.Telegram.Functions
             }
 
             mapper.Map(telegramUser, user);
+            user.ServiceAuthDate = DateTimeOffset.UtcNow;
             await userService.UpdateUser(user);
 
             if (!req.Query.ContainsKey("state"))

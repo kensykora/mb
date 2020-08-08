@@ -40,7 +40,7 @@ namespace MB.Telegram.Commands
             this.listenSessionService = listenSessionService;
         }
 
-        protected override async Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessInternalAsync(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
             var listenGroup = await listenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
 
@@ -83,7 +83,7 @@ namespace MB.Telegram.Commands
             return;
 
         }
-        protected override async Task ProcessInternal(Models.MBUser user, CallbackQuery message, ILogger logger)
+        protected override async Task ProcessInternalAsync(Models.MBUser user, CallbackQuery message, ILogger logger)
         {
         }
     }

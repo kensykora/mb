@@ -2,13 +2,9 @@ using System;
 using System.Threading.Tasks;
 using MB.Telegram.Models;
 using MB.Telegram.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace MB.Telegram.Commands
 {
@@ -28,9 +24,9 @@ namespace MB.Telegram.Commands
         public override string Command => "/listen";
         public override string Description => "Join the listen session";
 
-        protected override async Task ProcessInternal(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessInternalAsync(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            var listenSession = listenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
+            var listenSession = await listenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
 
             if (listenSession == null)
             {
@@ -40,7 +36,7 @@ namespace MB.Telegram.Commands
             }
         }
 
-        protected override async Task ProcessInternal(MBUser user, CallbackQuery callback, ILogger logger)
+        protected override async Task ProcessInternalAsync(MBUser user, CallbackQuery callback, ILogger logger)
         {
             // Nothing to respond to yet
         }

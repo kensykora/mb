@@ -14,7 +14,6 @@ namespace MB.Telegram
                 .ForMember(dest => dest.ServiceId, opt => opt.MapFrom(src => src.From.Id))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => $"{Prefix.Telegram}|{src.From.Id.ToString()}"))
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => (src.From.FirstName + " " + src.From.LastName).Trim()))
-                .ForMember(dest => dest.ServiceAuthDate, opt => opt.MapFrom(src => DateTimeOffset.UtcNow))
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.From.FirstName))
                 .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.From.LastName))
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.From.Username))
@@ -28,7 +27,6 @@ namespace MB.Telegram
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => (src.FirstName + " " + src.LastName).Trim()))
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.UserName))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => $"{Prefix.Telegram}|{src.Id.ToString()}"))
-                .ForMember(dest => dest.ServiceAuthDate, opt => opt.MapFrom(src => src.AuthDate))
                 .ForMember(dest => dest.PhotoUrl, opt => opt.MapFrom(src => src.PhotoUrl));
 
             CreateMap<User, MBUser>()
