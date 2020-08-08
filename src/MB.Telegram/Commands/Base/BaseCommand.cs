@@ -206,7 +206,7 @@ namespace MB.Telegram.Commands
             var state = message.Base64Encode();
             await TelegramClient.SendTextMessageAsync(
                 message.Chat.Id,
-                $"Sure thing... First, let's get connected.... in private 😉👅",
+                $"Sure thing... First click this link to allow me to chat with you directly.",
                 replyMarkup: new InlineKeyboardMarkup(
                 new InlineKeyboardButton()
                 {
