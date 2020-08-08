@@ -33,6 +33,8 @@ namespace MB.Telegram.Functions
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = "webhook")] HttpRequest req,
             ILogger log)
         {
+            // TODO: Joined group without permissions
+            // TODO: CHat member joined
             // TODO: ChatMemberLeft
             // TODO: ChatMemberLeft (Deleted Channel)
             var request = await new StreamReader(req.Body).ReadToEndAsync();

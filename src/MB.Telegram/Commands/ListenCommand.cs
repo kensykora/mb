@@ -24,11 +24,14 @@ namespace MB.Telegram.Commands
 
         public override ChatType[] SupportedChatTypes => new[] { ChatType.Group };
 
-        public override string[] ScopesRequired => new[] { Scopes.Streaming };
+        public override string[] ScopesRequired => new[] { 
+            Scopes.Streaming, // So we can manage their player and sync them with
+        };
 
         public override bool RequiresBotConnection => true;
 
         public override bool RequiresSpotify => true;
+        public override bool RequiresSpotifyPremium => true;
 
         protected override async Task ProcessInternal(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {

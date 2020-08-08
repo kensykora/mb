@@ -1,12 +1,9 @@
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using MB.Telegram.Models;
 using MB.Telegram.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -39,6 +36,7 @@ namespace MB.Telegram.Commands
         public abstract string Command { get; }
         public abstract string Description { get; }
         public virtual bool Publish => true;
+        public virtual bool RequiresSpotifyPremium => false;
 
         public virtual bool RequiresSpotify => false;
         public virtual bool RequiresBotConnection => false;
@@ -72,12 +70,28 @@ namespace MB.Telegram.Commands
                 return;
             }
 
-            if (UserIsMissingScopes(user))
+            if (RequiresSpotify && UserIsMissingScopes(user))
             {
                 logger.LogInformation("User {user} was missing scopes {scopes} for command {command}", user, string.Join(" ", ScopesRequired), this);
                 await ProcessMissingScopes(user, message, isAuthorizationCallback, logger);
 
                 return;
+            }
+
+            if (RequiresSpotify && RequiresSpotifyPremium)
+            {
+                var client = await SpotifyService.GetClientAsync(user);
+                var profile = await client.UserProfile.Current();
+
+                if (profile.Product != "premium")
+                {
+                    logger.LogInformation("User {user} tried to use command requiring spotify premium, but found {product}", user, profile.Product);
+                    await TelegramClient.SendTextMessageAsync(
+                        message.Chat.Id,
+                        $"Sorry {user.ToTelegramUserLink()} but you need spotify premium to use this command. Consider upgrading your account and try again.",
+                        ParseMode.Html);
+                    return;
+                }
             }
 
             await ProcessInternal(user, message, logger, isAuthorizationCallback);
@@ -86,6 +100,28 @@ namespace MB.Telegram.Commands
         private bool UserIsMissingSpotify(MBUser user)
         {
             return string.IsNullOrWhiteSpace(user.SpotifyId);
+        }
+
+        private string[] GetNetSpotifyScopesRequired(MBUser user)
+        {
+            var result = user.SpotifyScopesList;
+            foreach (var scope in ScopesRequired)
+            {
+                if (!result.Contains(scope))
+                {
+                    result.Add(scope);
+                }
+            }
+
+            if (RequiresSpotifyPremium && !result.Contains(Scopes.UserReadPrivate))
+            {
+                // So we can verify they have spotify premium
+                // see Product property: 
+                // https://developer.spotify.com/documentation/web-api/reference/users-profile/get-current-users-profile/#user-object-private
+                result.Add(Scopes.UserReadPrivate);
+            }
+
+            return result.ToArray();
         }
 
         private async Task RequestSpotifyAuthForUser(MBUser user, Message message, ILogger logger)
@@ -110,7 +146,7 @@ namespace MB.Telegram.Commands
                 new InlineKeyboardButton()
                 {
                     Text = "Connect Spotify Account",
-                    Url = SpotifyService.GetAuthorizationUri(user, state, ScopesRequired).ToString()
+                    Url = SpotifyService.GetAuthorizationUri(user, state, GetNetSpotifyScopesRequired(user)).ToString()
                 }));
         }
 
@@ -141,12 +177,15 @@ namespace MB.Telegram.Commands
 
         private async Task ProcessMissingScopes(MBUser user, Message message, bool isAuthorizationCallback, ILogger log)
         {
+            var scopesRequierd = GetNetSpotifyScopesRequired(user);
+            var missingScopes = scopesRequierd.Except(user.SpotifyScopesList);
+
             if (isAuthorizationCallback)
             {
                 // User already setup, this is an auth callback.. they must have denied scopes?
                 // TODO: Send through error state from auth call
 
-                log.LogWarning("User {user} denied scopes {scopes} for commmand {command}", user, string.Join(" ", ScopesRequired), this);
+                log.LogWarning("User {user} denied scopes {scopes} for commmand {command}", user, string.Join(" ", missingScopes), this);
 
                 await TelegramClient.SendTextMessageAsync(
                     message.Chat.Id,
@@ -162,26 +201,38 @@ namespace MB.Telegram.Commands
                 UserId = user.Id
             };
 
+            log.LogInformation("User {user} needs to grant additional scopes for {command} ({misingScopes})", user, this, string.Join(' ', missingScopes));
+
+            if (message.Chat.Id != message.From.Id)
+            {
+                await TelegramClient.SendTextMessageAsync(
+                    message.Chat.Id,
+                    $"Sure thing {user.ToTelegramUserLink()}... we need a few more permissions from you first. Check your private messages.",
+                    ParseMode.Html
+                );
+            }
+
             var response = string.IsNullOrWhiteSpace(user.SpotifyId)
-                ? $"Sure! lets get you connected first. Click this link and authorize me to manage your spotify player."
-                : $"Sorry {user.ToTelegramUserLink()} but we need additional permissions from you to do that. Please click this link and we'll get that sorted";
+                ? $"Sure! lets get you connected first. Click this link and authorize me to manage your Spotify player."
+                : $"We need additional Spotify permissions from you to run the command {this.Command}. Please click this link and we'll get that sorted";
 
             await TelegramClient.SendTextMessageAsync(
-                message.Chat.Id,
+                message.From.Id,
                 response,
                 ParseMode.Html,
                 replyMarkup: new InlineKeyboardMarkup(
                     new InlineKeyboardButton()
                     {
                         Text = "Connect Account",
-                        Url = SpotifyService.GetAuthorizationUri(user, state, ScopesRequired).ToString()
+                        Url = SpotifyService.GetAuthorizationUri(user, state, GetNetSpotifyScopesRequired(user)).ToString()
                     })
             );
         }
 
         private bool UserIsMissingScopes(MBUser user)
         {
-            return !ScopesRequired.All(scope => user.SpotifyScopes?.Contains(scope) ?? false);
+            return !GetNetSpotifyScopesRequired(user)
+                .All(scope => user.SpotifyScopes?.Contains(scope) ?? false);
         }
 
         protected abstract Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false);

@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Azure.Security.KeyVault.Secrets;
 using MB.Telegram.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using SpotifyAPI.Web;
@@ -20,6 +19,7 @@ namespace MB.Telegram.Services
         Task<PrivateUser> RedeemAuthorizationCode(MBUser user, string authorizationCode);
         string SerializeState(AuthorizationState state);
         AuthorizationState DeserializeState(string state);
+        Task<ISpotifyClient> GetClientAsync(MBUser user);
     }
 
     public class SpotifyService : ISpotifyService
@@ -80,16 +80,56 @@ namespace MB.Telegram.Services
             var profile = await spotify.UserProfile.Current();
 
             await userService.UpdateSpotifyDetails(user, response.Scope, profile.Id);
+            await SaveTokenAsync(user, response);
 
+            return profile;
+        }
+
+        private async Task SaveTokenAsync(MBUser user, AuthorizationCodeTokenResponse response)
+        {
             var secret = new KeyVaultSecret(
-                    name: string.Format(SpotifySecretKeyFormat, user.Id),
-                    value: JsonConvert.SerializeObject(response));
+                                name: GetUserTokenKey(user),
+                                value: JsonConvert.SerializeObject(response));
             secret.Properties.ContentType = "application/json";
             secret.Properties.NotBefore = response.CreatedAt.ToUniversalTime();
             secret.Properties.ExpiresOn = response.CreatedAt.AddSeconds(response.ExpiresIn).ToUniversalTime();
             await secretClient.SetSecretAsync(secret);
+        }
 
-            return profile;
+        private static string GetUserTokenKey(MBUser user)
+        {
+            return string.Format(SpotifySecretKeyFormat, user.Id);
+        }
+
+        public async Task<ISpotifyClient> GetClientAsync(MBUser user)
+        {
+            var token = await GetTokenAsync(user);
+            var authenticator = new AuthorizationCodeAuthenticator(config.SpotifyClientId, config.SpotifyClientSecret, token);
+            authenticator.TokenRefreshed += delegate(object o, AuthorizationCodeTokenResponse token) 
+            {
+                log.LogInformation("Refreshing spotify token for user {user}", user);
+                Task.Run(async () => {
+                    await SaveTokenAsync(user, token);
+                }).Wait();
+            };
+
+            var spotifyConfig = SpotifyClientConfig
+                .CreateDefault()
+                .WithAuthenticator(authenticator);
+
+            return new SpotifyClient(spotifyConfig);
+        }
+
+        private async Task<AuthorizationCodeTokenResponse> GetTokenAsync(MBUser user)
+        {
+            var response = await secretClient.GetSecretAsync(GetUserTokenKey(user));
+
+            if (response.Value == null)
+            {
+                return null;
+            }
+
+            return JsonConvert.DeserializeObject<AuthorizationCodeTokenResponse>(response.Value.Value);
         }
 
         public AuthorizationState DeserializeState(string state)
