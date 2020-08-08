@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace MB.Telegram.Commands
 {
@@ -12,14 +13,16 @@ namespace MB.Telegram.Commands
     {
         public ListenCommand()
         {
-
         }
-        public ListenCommand(ITelegramBotClient telegramClient, ISpotifyService spotifyService, IConfiguration config) : base(telegramClient, spotifyService, config)
+
+        public ListenCommand(ITelegramBotClient telegramClient, ISpotifyService spotifyService, Config config) : base(telegramClient, spotifyService, config)
         {
         }
 
         public override string Command => "/listen";
         public override string Description => "Join the listen session";
+
+        public override ChatType[] SupportedChatTypes => new[] { ChatType.Group };
 
         public override string[] ScopesRequired => new[] { Scopes.Streaming };
 
@@ -29,7 +32,9 @@ namespace MB.Telegram.Commands
 
         protected override async Task ProcessInternal(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            await TelegramClient.SendTextMessageAsync(message.Chat.Id, "not done");
+            await TelegramClient.SendTextMessageAsync(message.Chat.Id, "not implemented");
+
+            return;
         }
     }
 }

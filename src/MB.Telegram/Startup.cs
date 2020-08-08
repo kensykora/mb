@@ -14,9 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Table;
-using SpotifyAPI.Web;
 using Telegram.Bot;
-using Telegram.Bot.Extensions.LoginWidget;
 using Telegram.Bot.Types;
 
 [assembly: FunctionsStartup(typeof(MB.Telegram.Startup))]
@@ -31,23 +29,24 @@ namespace MB.Telegram
         {
             var cb = new ConfigurationBuilder()
                 .AddEnvironmentVariables();
-            var config = cb.Build();
+            var config = new Config();
+            cb.Build().Bind(config);
 
-            builder.Services.AddSingleton<ITelegramBotClient>(x => new TelegramBotClient(config.GetValue<string>("telegramApiKey")));
-            builder.Services.AddSingleton<TelegramLoginVerify>(x => new TelegramLoginVerify(config.GetValue<string>("telegramApiKey")));
-            builder.Services.AddSingleton<IConfiguration>(x => config);
+            builder.Services.AddSingleton<ITelegramBotClient>(x => new TelegramBotClient(config.TelegramApiKey));
+            builder.Services.AddSingleton<TelegramLoginVerify>(x => new TelegramLoginVerify(config.TelegramApiKey));
+            builder.Services.AddSingleton<Config>(x => config);
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<ICommandService, CommandService>();
             builder.Services.AddSingleton<ISpotifyService, SpotifyService>();
             builder.Services.AddSingleton<CloudTableClient>(x => GetCloudTableClient(
-                config.GetValue<string>("storageAccountName"),
-                config.GetValue<string>("storageAccountKey"),
-                config.GetValue<bool?>("useLocalStorage")
+                config.StorageAccountName,
+                config.StorageAccountKey,
+                config.UseLocalStorage
             ));
             builder.Services.AddSingleton<SecretClient>(x =>
                 new SecretClient(
-                    new Uri($"https://{config.GetValue<string>("keyVaultName")}.vault.azure.net"),
+                    new Uri($"https://{config.KeyVaultName}.vault.azure.net"),
                     new DefaultAzureCredential(includeInteractiveCredentials: Debugger.IsAttached)));
 
             var commands = FindDerivedTypes(Assembly.GetExecutingAssembly(), typeof(BaseCommand))
@@ -69,8 +68,9 @@ namespace MB.Telegram
                 }
             }
 
-            var telegram = new TelegramBotClient(config.GetValue<string>("telegramApiKey"));
+            var telegram = new TelegramBotClient(config.TelegramApiKey);
             telegram.SetMyCommandsAsync(telegramCommands);
+            telegram.SetWebhookAsync(config.BaseUrl + "/webhook");
         }
         public IEnumerable<Type> FindDerivedTypes(Assembly assembly, Type baseType)
         {

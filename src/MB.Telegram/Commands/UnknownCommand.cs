@@ -12,7 +12,7 @@ namespace MB.Telegram.Commands
     public class UnknownCommand : BaseCommand
     {
         public UnknownCommand() { }
-        public UnknownCommand(ITelegramBotClient client, ISpotifyService spotifyService, IConfiguration config) : base(client, spotifyService, config) { }
+        public UnknownCommand(ITelegramBotClient client, ISpotifyService spotifyService, Config config) : base(client, spotifyService, config) { }
         public override string Command => null;
         public override string Description => null;
         public override bool Publish => false;

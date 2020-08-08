@@ -25,13 +25,13 @@ namespace MB.Telegram.Services
     public class SpotifyService : ISpotifyService
     {
         private readonly IUserService userService;
-        private readonly IConfiguration config;
+        private readonly Config config;
         private readonly SecretClient secretClient;
         private readonly ILogger log;
 
         private const string SpotifySecretKeyFormat = "spotify-{0}";
 
-        public SpotifyService(IUserService userService, IConfiguration config, SecretClient secretClient, ILogger log)
+        public SpotifyService(IUserService userService, Config config, SecretClient secretClient, ILogger log)
         {
             this.userService = userService;
             this.config = config;
@@ -39,7 +39,7 @@ namespace MB.Telegram.Services
             this.log = log;
         }
 
-        public Uri RedirectUri => new Uri(config.GetValue<string>("baseUrl") + "/auth/spotify");
+        public Uri RedirectUri => new Uri(config.BaseUrl + "/auth/spotify");
 
         public Uri GetAuthorizationUri(MBUser user, AuthorizationState state, string[] additionalScopes = null)
         {
@@ -57,7 +57,7 @@ namespace MB.Telegram.Services
 
             return new LoginRequest(
                 RedirectUri,
-                config.GetValue<string>("spotifyClientId"),
+                config.SpotifyClientId,
                 LoginRequest.ResponseType.Code
             )
             {
@@ -70,8 +70,8 @@ namespace MB.Telegram.Services
         {
             var response = await new OAuthClient().RequestToken(
                 new AuthorizationCodeTokenRequest(
-                    config.GetValue<string>("spotifyClientId"),
-                    config.GetValue<string>("spotifyClientSecret"),
+                    config.SpotifyClientId,
+                    config.SpotifyClientSecret,
                     authorizationCode,
                     RedirectUri)
             );

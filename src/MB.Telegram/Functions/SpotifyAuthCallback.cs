@@ -104,7 +104,7 @@ namespace MB.Telegram.Functions
             await command.Process(user, state.Message, log, isAuthorizationCallback: true);
 
             // TODO: Figure out how to redirect to specific chat
-            //return new RedirectResult($"https://tg.me/{config.GetValue<string>("telegramBotUsername")}");
+            //return new RedirectResult($"https://tg.me/{config.TelegramBotUserName}");
             return new RedirectResult("tg://");
         }
     }

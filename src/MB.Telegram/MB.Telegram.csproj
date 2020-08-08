@@ -13,7 +13,6 @@
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.3" />
     <PackageReference Include="SpotifyAPI.Web" Version="6.0.0-beta.9" />
     <PackageReference Include="Telegram.Bot" Version="15.7.1" />
-    <PackageReference Include="Telegram.Bot.Extensions.LoginWidget" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

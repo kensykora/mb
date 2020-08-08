@@ -17,7 +17,7 @@ namespace MB.Telegram.Commands
 {
     public abstract class BaseCommand : IChatCommand
     {
-        protected IConfiguration Config { get; }
+        protected Config Config { get; }
 
         protected ISpotifyService SpotifyService { get; }
 
@@ -25,9 +25,11 @@ namespace MB.Telegram.Commands
 
         public abstract string[] ScopesRequired { get; }
 
+        public virtual ChatType[] SupportedChatTypes => new[] { ChatType.Channel, ChatType.Group, ChatType.Private, ChatType.Supergroup };
+
         protected BaseCommand() { }
 
-        protected BaseCommand(ITelegramBotClient client, ISpotifyService spotifyService, IConfiguration config)
+        protected BaseCommand(ITelegramBotClient client, ISpotifyService spotifyService, Config config)
         {
             TelegramClient = client;
             SpotifyService = spotifyService;
@@ -46,6 +48,15 @@ namespace MB.Telegram.Commands
         }
         public async Task Process(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
+            if (!SupportedChatTypes.Contains(message.Chat.Type))
+            {
+                logger.LogDebug("Command {command} does not support chat type {type}", this, message.Chat.Type);
+                await TelegramClient.SendTextMessageAsync(
+                    message.Chat.Id,
+                    $"Sorry, that command isn't supported in this type of chat. That command can only be used in {string.Join(", ", SupportedChatTypes.Select(x => $"{x}s".ToLower()))}");
+                return;
+            }
+
             if (RequiresBotConnection && UserIsNotConnected(user))
             {
                 logger.LogInformation("User {user} wasn't connected, starting connection process", user);
@@ -117,7 +128,7 @@ namespace MB.Telegram.Commands
                     LoginUrl = new LoginUrl()
                     {
                         RequestWriteAccess = true,
-                        Url = $"{Config.GetValue<string>("baseUrl")}/auth/telegram?state={state}"
+                        Url = $"{Config.BaseUrl}/auth/telegram?state={state}"
                     }
                 }));
             return;
