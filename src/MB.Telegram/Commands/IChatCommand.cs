@@ -17,5 +17,7 @@ namespace MB.Telegram.Commands
         Task Process(MBUser user, Message update, ILogger logger, bool isAuthorizationCallback = false);
 
         bool CanHandle(string message);
+        bool CanHandle(UnknownCallback callback);
+        Task Process(MBUser user, CallbackQuery callback, ILogger logger);
     }
 }

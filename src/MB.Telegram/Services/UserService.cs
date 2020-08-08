@@ -25,7 +25,7 @@ namespace MB.Telegram.Services
         {
             this.client = client ?? throw new System.ArgumentNullException(nameof(client));
             this.table = client.GetTableReference(TableName);
-            table.CreateIfNotExistsAsync();
+            table.CreateIfNotExistsAsync().Wait();
         }
 
         public async Task CreateUser(MBUser user)

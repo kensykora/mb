@@ -12,6 +12,7 @@ using AutoMapper;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using System.Linq;
+using MB.Telegram.Models;
 
 namespace MB.Telegram.Functions
 {
@@ -29,8 +30,8 @@ namespace MB.Telegram.Functions
         // pre_checkout_query
         // poll
         // poll_answer
-        public static UpdateType[] SupportedUpdateTypes => new UpdateType[] { UpdateType.Message };
-        
+        public static UpdateType[] SupportedUpdateTypes => new UpdateType[] { UpdateType.Message, UpdateType.CallbackQuery };
+
         private readonly IUserService userService;
         private readonly IMapper mapper;
         private readonly ICommandService commandService;
@@ -64,19 +65,48 @@ namespace MB.Telegram.Functions
                 return new BadRequestResult();
             }
 
-            // if (update.ChannelPost != null || update.EditedChannelPost != null)
-            // {
-            //     var post = update.EditedChannelPost ?? update.ChannelPost;
-            //     // TODO: Handle channel stuff
-            //     /*
-            //         [8/2/2020 7:48:50 PM] {"update_id":257364048,
-            //         "channel_post":{"message_id":2,"chat":{"id":-1001208267207,"title":"music bot test channel","type":"channel"},"date":1596397699,"text":"hi"}}
-            //     */
-            //     log.LogInformation("Channel post {channel}, ignoring.", post.Chat.Title);
-            //     return new OkResult();
-            // }
+            switch (update.Type)
+            {
+                case UpdateType.Message:
+                    return await HandleMessage(log, update);
+                case UpdateType.CallbackQuery:
+                    return await HandleCallback(log, update);
+                default:
+                    log.LogError("Unable to handle update type {type}: {raw}", update.Type, request);
+                    return new OkResult();
+            }
+        }
 
+        private async Task<IActionResult> HandleCallback(ILogger log, Update update)
+        {
+            /*{"update_id":257364106,
+"callback_query":{"id":"4559785438211274145","from":{"id":1061657778,"is_bot":false,"first_name":"Ken","last_name":"Sykora","username":"kensykora",
+"language_code":"en"},"message":{"message_id":335,"from":{"id":1394272461,"is_bot":true,"first_name":"mbot testing","username":"emmmmm_bot"},
+"chat":{"id":-460508819,"title":"vnkd","type":"group","all_members_are_administrators":true},"date":1596907414,"text":"OK. Since this the first time setting up, 
+a listen session, we need to select an owner. The owner will have a playlist created and managed by me. The first person to click this button becomes the owner. 
+READY, GO.","reply_markup":{"inline_keyboard":[[{"text":"Make me the owner!","callback_data":"own"}]]}},"chat_instance":"6467729790075545641","data":"own"}}
+*/
+            var user = await CreateOrUpdateUser(update.CallbackQuery.From);
+
+            var command = commandService.GetCommandForCallback(update);
+
+            if (command == null)
+            {
+                log.LogCritical("Invalid callback received: " + update.CallbackQuery.Data);
+                return new OkResult();
+            }
+
+            await command.Process(user, update.CallbackQuery, log);
+
+            return new OkResult();
+        }
+
+        private async Task<IActionResult> HandleMessage(ILogger log, Update update)
+        {
             var message = update.EditedMessage ?? update.Message;
+
+            var user = await CreateOrUpdateUser(message.From);
+
             switch (message.Type)
             {
                 // TODO: Handle channel join -- initiate channel
@@ -86,21 +116,18 @@ namespace MB.Telegram.Functions
                     "message":{"message_id":218,"from":{"id":1061657778,"is_bot":false,"first_name":"Ken","last_name":"Sykora","username":"kensykora","language_code":"en"},"chat":{"id":-497302716,"title":"music bot test group","type":"group","all_members_are_administrators":true},"date":1596397848,"group_chat_created":true}}
                     */
                 case MessageType.Text:
-                    return await HandleTextMessage(message, log);
+                    return await HandleTextMessage(message, user, log);
+                case MessageType.GroupCreated:
+                    return await HandleGroupCreatedMessage(message, user, log);
                 default:
-                    log.LogInformation("Ignoring -- Don't know how to deal with message type {type} {message}", message.Type, request);
+                    log.LogError("Unhandled Message Type: Ignoring -- Don't know how to deal with message type {type}", message.Type);
                     return new OkResult();
             }
         }
 
-        private async Task<IActionResult> HandleTextMessage(Message message, ILogger log)
+        private async Task<MBUser> CreateOrUpdateUser(User telegramUser)
         {
-            log.LogDebug("Handling text message {message}", message.Text);
-
-            // Check to see if it's from a user
-            MB.Telegram.Models.MBUser user = null;
-
-            user = mapper.Map<MB.Telegram.Models.MBUser>(message);
+            var user = mapper.Map<MBUser>(telegramUser); ;
 
             var search = await userService.GetUser(user.Id);
 
@@ -108,13 +135,7 @@ namespace MB.Telegram.Functions
             {
                 user.CreatedOn = DateTimeOffset.UtcNow;
                 user.LastSeen = DateTimeOffset.UtcNow;
-
-                if (message.Chat.Type == ChatType.Private)
-                {
-                    // Private chat implies they have authorized us to send them messages
-                    // We can skip the telegram auth step.
-                    user.ServiceAuthDate = DateTimeOffset.UtcNow;
-                }
+                user.ServiceAuthDate = DateTimeOffset.UtcNow;
 
                 await userService.CreateUser(user);
             }
@@ -123,6 +144,22 @@ namespace MB.Telegram.Functions
                 await userService.SetLastSeenUser(search);
                 user = search;
             }
+
+            return user;
+        }
+
+        private async Task<IActionResult> HandleGroupCreatedMessage(Message message, MBUser user, ILogger log)
+        {
+            log.LogDebug("Invited to group by {user} group created message {chat}", user, message.Chat.Title);
+
+            // TODO: Onboard channel
+
+            return new OkResult();
+        }
+
+        private async Task<IActionResult> HandleTextMessage(Message message, MBUser user, ILogger log)
+        {
+            log.LogDebug("Handling text message {message}", message.Text);
 
             if (!(message.Entities?.Any(x => x.Type == MessageEntityType.BotCommand) ?? false))
             {
@@ -146,7 +183,7 @@ namespace MB.Telegram.Functions
             );
 
             await command.Process(user, message, log);
-            
+
             return new OkResult();
         }
     }

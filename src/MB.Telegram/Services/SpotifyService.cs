@@ -107,7 +107,8 @@ namespace MB.Telegram.Services
             var authenticator = new AuthorizationCodeAuthenticator(config.SpotifyClientId, config.SpotifyClientSecret, token);
             authenticator.TokenRefreshed += delegate(object o, AuthorizationCodeTokenResponse token) 
             {
-                log.LogInformation("Refreshing spotify token for user {user}", user);
+                // TODO: Logging via constructor - this value of log is currently null
+                // log.LogInformation("Refreshing spotify token for user {user}", user);
                 Task.Run(async () => {
                     await SaveTokenAsync(user, token);
                 }).Wait();

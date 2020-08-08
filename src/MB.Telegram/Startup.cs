@@ -56,6 +56,7 @@ namespace MB.Telegram
                     .ToList();
 
             builder.Services.AddSingleton<List<IChatCommand>>(commands);
+            builder.Services.AddSingleton<IListenSessionService, ListenSessionService>();
             List<BotCommand> telegramCommands = new List<BotCommand>();
             foreach (var cmd in commands)
             {

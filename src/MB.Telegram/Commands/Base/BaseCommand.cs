@@ -1,8 +1,11 @@
 using System;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
+using MB.Telegram.Models;
 using MB.Telegram.Services;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SpotifyAPI.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -40,10 +43,25 @@ namespace MB.Telegram.Commands
 
         public virtual bool RequiresSpotify => false;
         public virtual bool RequiresBotConnection => false;
+
+        public virtual bool CanHandle(UnknownCallback callback)
+        {
+            return callback.CommandType == this.GetType().Name;
+        }
+
         public virtual bool CanHandle(string message)
         {
             return message.StartsWith(Command, StringComparison.CurrentCultureIgnoreCase);
         }
+
+        public async Task Process(MBUser user, CallbackQuery callback, ILogger logger)
+        {
+            if (await TryHandleRequiresBotConnection(user, logger, callback.Message)) { return; }
+            if (await TryHandleRequiresSpotifyConnection(user, logger, callback.Message)) { return; }
+
+            await ProcessInternal(user, callback, logger);
+        }
+
         public async Task Process(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
             if (!SupportedChatTypes.Contains(message.Chat.Type))
@@ -55,19 +73,32 @@ namespace MB.Telegram.Commands
                 return;
             }
 
+            if (await TryHandleRequiresBotConnection(user, logger, message)) { return; }
+            if (await TryHandleRequiresSpotifyConnection(user, logger, message, isAuthorizationCallback)) { return; }
+
+            await ProcessInternal(user, message, logger, isAuthorizationCallback);
+        }
+
+        private async Task<bool> TryHandleRequiresBotConnection(MBUser user, ILogger logger, Message message)
+        {
             if (RequiresBotConnection && UserIsNotConnected(user))
             {
                 logger.LogInformation("User {user} wasn't connected, starting connection process", user);
                 await RequestTelegramAuthForUser(user, message, logger);
-                return;
+                return true;
             }
 
+            return false;
+        }
+
+        private async Task<bool> TryHandleRequiresSpotifyConnection(MBUser user, ILogger logger, Message message, bool isAuthorizationCallback = false)
+        {
             if (RequiresSpotify && UserIsMissingSpotify(user))
             {
                 logger.LogInformation("User {user} was missing spotify authorization for command {command}", user, this);
                 await RequestSpotifyAuthForUser(user, message, logger);
 
-                return;
+                return true;
             }
 
             if (RequiresSpotify && UserIsMissingScopes(user))
@@ -75,26 +106,44 @@ namespace MB.Telegram.Commands
                 logger.LogInformation("User {user} was missing scopes {scopes} for command {command}", user, string.Join(" ", ScopesRequired), this);
                 await ProcessMissingScopes(user, message, isAuthorizationCallback, logger);
 
-                return;
+                return true;
             }
 
             if (RequiresSpotify && RequiresSpotifyPremium)
             {
                 var client = await SpotifyService.GetClientAsync(user);
-                var profile = await client.UserProfile.Current();
-
-                if (profile.Product != "premium")
+                try
                 {
-                    logger.LogInformation("User {user} tried to use command requiring spotify premium, but found {product}", user, profile.Product);
-                    await TelegramClient.SendTextMessageAsync(
-                        message.Chat.Id,
-                        $"Sorry {user.ToTelegramUserLink()} but you need spotify premium to use this command. Consider upgrading your account and try again.",
-                        ParseMode.Html);
-                    return;
+                    var profile = await client.UserProfile.Current();
+                    if (profile.Product != "premium")
+                    {
+                        logger.LogInformation("User {user} tried to use command requiring spotify premium, but found {product}", user, profile.Product);
+                        await TelegramClient.SendTextMessageAsync(
+                            message.Chat.Id,
+                            $"Sorry {user.ToTelegramUserLink()} but you need spotify premium to use this command. Consider upgrading your account and try again.",
+                            ParseMode.Html);
+                        return true;
+                    }
+                }
+                catch (SpotifyAPI.Web.APIException ex)
+                {
+                    if (ex.Response.StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        var error = JsonConvert.DeserializeObject<SpotifyError>(ex.Response.Body as string);
+                        if (error.ErrorDescription == "Refresh token revoked")
+                        {
+                            // TODO: Make this more language natural.. currently acts like a new user
+                            logger.LogWarning("User {user} revoked Spotify credentials", user);
+                            await RequestSpotifyAuthForUser(user, message, logger);
+                            return true;
+                        }
+                    }
+
+                    throw;
                 }
             }
 
-            await ProcessInternal(user, message, logger, isAuthorizationCallback);
+            return false;
         }
 
         private bool UserIsMissingSpotify(MBUser user)
@@ -236,6 +285,8 @@ namespace MB.Telegram.Commands
         }
 
         protected abstract Task ProcessInternal(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false);
+
+        protected abstract Task ProcessInternal(MBUser user, CallbackQuery callback, ILogger logger);
 
         public override string ToString()
         {
