@@ -10,23 +10,21 @@ namespace MB.Telegram.Commands
 {
     public class ListenCommand : BaseListenSessionCommand
     {
-        private readonly IListenSessionService listenSessionService;
-
         public ListenCommand()
         {
         }
 
-        public ListenCommand(IListenSessionService listenSessionService, ITelegramBotClient telegramClient, ISpotifyService spotifyService, Config config) : base(telegramClient, spotifyService, config)
+        public ListenCommand(IListenSessionService listenSessionService, ITelegramBotClient telegramClient, ISpotifyService spotifyService, Config config)
+            : base(listenSessionService, telegramClient, spotifyService, config)
         {
-            this.listenSessionService = listenSessionService;
         }
 
         public override string Command => "/listen";
         public override string Description => "Join the listen session";
 
-        protected override async Task ProcessInternalAsync(Models.MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessListenSessionCommandInternalAsync(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            var listenSession = await listenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
+            var listenSession = await ListenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
 
             if (listenSession == null)
             {
@@ -35,18 +33,8 @@ namespace MB.Telegram.Commands
                     "This group isn't setup for listening. Run /init first.");
             }
 
-            var ownerSpotifyClient = await SpotifyService.GetClientAsync(listenSession.OwnerMBUserId);
-            
 
-            var playlist = await ownerSpotifyClient.Playlists.Get(listenSession.SpotifyPlaylistId);
-            if (playlist == null)
-            {
-                // TODO: handle User deleted playlist
-                logger.LogError("Playlist wasn't found.. must have been deleted");
-                return;
-            }
-
-            if (playlist.Tracks.Total == 0)
+            if (CurrentGroupPlaylist.Tracks.Total == 0)
             {
                 await TelegramClient.SendTextMessageAsync(
                     message.Chat.Id,

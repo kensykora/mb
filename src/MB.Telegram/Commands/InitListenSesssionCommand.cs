@@ -14,14 +14,14 @@ namespace MB.Telegram.Commands
 {
     public class InitListenSessionCommand : BaseListenSessionCommand
     {
-        private readonly IListenSessionService listenSessionService;
-
         public override string Command => "/init";
 
         public override string Description => "Setup this group for a listening session";
 
-        public override string[] ScopesRequired {
-            get {
+        public override string[] ScopesRequired
+        {
+            get
+            {
                 var result = new List<string>(base.ScopesRequired);
 
                 result.AddRange(new[] { Scopes.PlaylistReadCollaborative, Scopes.PlaylistModifyPrivate }); // So we can store the current playlist and manage it
@@ -35,17 +35,16 @@ namespace MB.Telegram.Commands
 
         }
 
-        public InitListenSessionCommand(IListenSessionService listenSessionService, ITelegramBotClient telegramClient, ISpotifyService spotifyService, Config config) : base(telegramClient, spotifyService, config)
+        public InitListenSessionCommand(IListenSessionService listenSessionService, ITelegramBotClient telegramClient, ISpotifyService spotifyService, Config config)
+            : base(listenSessionService, telegramClient, spotifyService, config)
         {
-            this.listenSessionService = listenSessionService;
         }
 
-        protected override async Task ProcessInternalAsync(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
+        protected override async Task ProcessListenSessionCommandInternalAsync(MBUser user, Message message, ILogger logger, bool isAuthorizationCallback = false)
         {
-            var listenGroup = await listenSessionService.GetGroupAsync(ChatServices.Telegram, message.Chat.Id.ToString());
-
-            if (listenGroup != null)
+            if (ListenGroup != null)
             {
+                logger.LogInformation("Group {group} is already setup for listen session", ListenGroup);
                 await TelegramClient.SendTextMessageAsync(
                     message.Chat.Id,
                     "This group is already setup for listening.");
@@ -60,7 +59,7 @@ namespace MB.Telegram.Commands
                 Public = false
             });
 
-            listenGroup = new ListenGroup()
+            var group = new ListenGroup()
             {
                 Id = ListenGroup.GetId(ChatServices.Telegram, message.Chat.Id.ToString()),
                 ServiceId = message.Chat.Id.ToString(),
@@ -74,17 +73,19 @@ namespace MB.Telegram.Commands
                 Created = DateTimeOffset.UtcNow
             };
 
-            await listenSessionService.CreateGroupAsync(listenGroup);
+            await ListenSessionService.CreateGroupAsync(group);
 
             await TelegramClient.SendTextMessageAsync(
                     message.Chat.Id,
-                    "Setup Complete. " + playlist.ExternalUrls.FirstOrDefault().Value); // TODO: Show playlist link
+                    "Setup Complete. " + playlist.ExternalUrls.FirstOrDefault().Value);
 
             return;
-
         }
-        protected override async Task ProcessInternalAsync(Models.MBUser user, CallbackQuery message, ILogger logger)
+
+        protected override Task ProcessInternalAsync(MBUser user, CallbackQuery callback, ILogger logger)
         {
+            // Nothing to do here
+            return Task.CompletedTask;
         }
     }
 }

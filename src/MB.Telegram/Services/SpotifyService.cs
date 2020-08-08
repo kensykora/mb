@@ -99,7 +99,7 @@ namespace MB.Telegram.Services
 
         private static string GetUserTokenKey(string mbUserId)
         {
-            return string.Format(SpotifySecretKeyFormat, mbUserId.Replace('|','-'));
+            return string.Format(SpotifySecretKeyFormat, mbUserId.Replace('|', '-'));
         }
 
         public Task<ISpotifyClient> GetClientAsync(MBUser user)
@@ -110,12 +110,19 @@ namespace MB.Telegram.Services
         public async Task<ISpotifyClient> GetClientAsync(string mbUserId)
         {
             var token = await GetTokenAsync(mbUserId);
+
+            if (token == null)
+            {
+                return null;
+            }
+
             var authenticator = new AuthorizationCodeAuthenticator(config.SpotifyClientId, config.SpotifyClientSecret, token);
-            authenticator.TokenRefreshed += delegate(object o, AuthorizationCodeTokenResponse token) 
+            authenticator.TokenRefreshed += delegate (object o, AuthorizationCodeTokenResponse token)
             {
                 // TODO: Logging via constructor - this value of log is currently null
                 // log.LogInformation("Refreshing spotify token for user {user}", user);
-                Task.Run(async () => {
+                Task.Run(async () =>
+                {
                     await SaveTokenAsync(mbUserId, token);
                 }).Wait();
             };
